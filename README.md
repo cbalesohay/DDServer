@@ -18,6 +18,6 @@ The back end of this project is written using Typescript. The tought behind maki
 - Mongoose
 
 
-# Update / Build
+# Run / Build
 
-- npx tsc --build
+- npm run start
