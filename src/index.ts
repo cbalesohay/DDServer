@@ -68,10 +68,10 @@ let storedData: StoredData = {
     lrDayDegreeDay: 0,
     cmDayDegreeDay: 0,
     asDayDegreeDay: 0,
-    wcDDA: 0,
-    lrDDA: 0,
-    cmDDA: 0,
-    asDDA: 0,
+    wcTotalDDA: 0,
+    lrTotalDDA: 0,
+    cmTotalDDA: 0,
+    asTotalDDA: 0,
     dayLow: 1000,
     dayHigh: -1000,
     dayAverage: 0,
@@ -86,6 +86,9 @@ let storedData: StoredData = {
 const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+// For reference of connecting two clusters for another day
+// https://stackoverflow.com/questions/76358813/how-can-i-connect-two-different-mongodb-clusters-to-my-express-js-backend-using
 
 // Connection to Chris test database
 mongoose
@@ -106,10 +109,9 @@ app.listen(PORT, () => {
   console.log(`Server running on Render port ${PORT}`);
 });
 // app.post("/post", asyncHandler(getProcessedData)); // Route to fetch and process data
-app.post("/bulk", asyncHandler(fetchDegreeDayData)); // Route to fetch and process data
+app.post("/sendData", asyncHandler(sendProcessedData)); // Sends most updated data
 app.get("/health", (req: any, res: any) => {
-  // Health check route
-  res.status(200).send("OK");
+  res.status(200).send("OK"); // Health check route
 });
 // Error-handling middleware
 app.use((err: any, req: any, res: any, next: any) => {
@@ -126,85 +128,44 @@ app.use((err: any, req: any, res: any, next: any) => {
  * @param specificDate The specific date to fetch data for
  * @param dayAfter The day after the specific date
  */
-// async function fetchAndStoreData(specificDate: string, dayAfter: Date) {
-//   // Construct the query to filter data based on specificDate
-//   const query = {
-//     device: 12,
-//     id: 222,
-//     time: {
-//       $gte: new Date(specificDate).toISOString(),
-//       $lt: new Date(dayAfter).toISOString(),
-//     },
-//   };
-
-//   // Specify the fields to return in the projection (rainfall, humidity, temperature)
-//   const projection = {
-//     total_rainfall: 1,
-//     humidity: 1,
-//     temperature: 1,
-//     _id: 0, // Exclude the _id field
-//   };
-
-//   // Fetch the data based on the query and projection
-//   const results = await soacModel.find(query, projection).exec();
-
-//   // If no results found, throw an error
-//   if (!results || results.length === 0) {
-//     throw new Error("No data found");
-//   }
-
-//   // Log the request
-//   console.log("--------------------");
-//   console.log("Request Made");
-//   console.log("Date: " + JSON.stringify(specificDate));
-//   console.log("--------------------");
-
-//   // Process the data
-//   storeRain(results);
-//   storeHumindiy(results);
-//   storeTemperature(results);
-//   storeDegreeDay();
-// }
-
-async function fetchDegreeDayData() {
+async function fetchAndStoreData(specificDate: string, dayAfter: Date) {
+  // Construct the query to filter data based on specificDate
   const query = {
-    name: "Western Cherry",
+    device: 12,
+    id: 222,
+    time: {
+      $gte: new Date(specificDate).toISOString(),
+      $lt: new Date(dayAfter).toISOString(),
+    },
   };
+
   // Specify the fields to return in the projection (rainfall, humidity, temperature)
   const projection = {
-    name: 1,
-    DDA: 1,
-    startDate: 1,
+    total_rainfall: 1,
+    humidity: 1,
+    temperature: 1,
     _id: 0, // Exclude the _id field
   };
 
   // Fetch the data based on the query and projection
-  // const results = await soacDDModel.find(query, projection).exec();
-  const results = await soacDailyDDModel.find();
-
-  const results2 = await soacYearlyDDModel.find();
-
-  getRunningDDA("Western Cherry", new Date("2025-01-01"));
+  const results = await soacDailyDDModel.find(query, projection).exec();
 
   // If no results found, throw an error
   if (!results || results.length === 0) {
     throw new Error("No data found");
   }
 
-  if (!results2 || results2.length === 0) {
-    throw new Error("No data found");
-  }
-
   // Log the request
   console.log("--------------------");
   console.log("Request Made");
-  console.log("for DDA: ");
+  console.log("Date: " + JSON.stringify(specificDate));
   console.log("--------------------");
 
   // Process the data
-  // console.log(results);
-
-  // console.log(results2);
+  storeRain(results);
+  storeHumindiy(results);
+  storeTemperature(results);
+  storeDegreeDay();
 }
 
 /**
@@ -222,36 +183,9 @@ async function sendProcessedData(req: any, res: any, next: any) {
 
     console.log("Received request data:", req.body);
 
-    // Fetch and process data
-    //const processedData = await fetchAndStoreData(specificDate, dayAfter);
-
-    // Fetch DDA from database
-    const dda = await fetchDegreeDayData();
-
-    res.json(storedData.Metric); // Respond with processed data
-  } catch (error) {
-    console.error("Error occurred:", (error as Error).message);
-    next(error); // Pass the error to error-handling middleware
-  }
-}
-
-/**
- * @description Function to send the stored data to the client
- * @param req
- * @param res
- * @param next
- */
-async function sendBulkData(req: any, res: any, next: any) {
-  // Check to see if metric has degree days stored, if so then return the stored data
-  try {
-    const specificDate = req.body.date;
-    const dayAfter = new Date(specificDate);
-    dayAfter.setDate(dayAfter.getDate() + 1);
-
-    console.log("Received request data:", req.body);
-
-    // Fetch and process data
-    //const processedData = await fetchAndStoreBulk(specificDate, dayAfter);
+    // Fetch and store data
+    // await fetchAndStoreData(specificDate, dayAfter);
+    await calculateRunningDDA();
 
     res.json(storedData.Metric); // Respond with processed data
   } catch (error) {
@@ -266,41 +200,17 @@ const currentYear = new Date().getFullYear();
  * @description Function to record degree day data per day
  * @param tempRunningDDA The degree day data to store
  */
-async function storeDayDD(tempRunningDDA: number) {
+async function storeDayDD(name: string, tempRunningDDA: number) {
   // Push the new degree day data to the database
-  soacYearlyDDModel.updateOne(
-    { name: "Western Cherry", startDate: { $gte: new Date(`${currentYear}-01-01`) } },
-    { $set: { totalDegreeDays: tempRunningDDA } },
-    { $set: { lastInput: new Date() } },
-  );
-}
-
-/**
- * @description Function call to record degree days from certain day to current day
- * @param name The name of the degree day to fetch
- * @param fromDate The date to fetch the degree day from
- * @returns For testing purposes, returns 0 if successful and -1 if there was an error
- */
-async function getRunningDDA(name: string = "Western Cherry", fromDate: Date | Date = new Date(currentYear, 0)) {
   try {
-    const results1 = await soacYearlyDDModel.find({ name: name }, { _id: 0, name: 1, totalDegreeDays: 1 }).exec();
-    if (results1.length === 0) {
-      throw new Error("No data found");
-    }
-    let tempRunningDDA = await calculateRunningDDA(fromDate);
-    if (results1.totalDegreeDays !== tempRunningDDA || results1.length > tempRunningDDA) {
-      // Assign tempRunningDDA to the totalDegreeDays
-      storeDayDD(tempRunningDDA);
-      const results2 = await soacYearlyDDModel.find({ name: name }, { _id: 0, name: 1, totalDegreeDays: 1 }).exec();
-      console.log("Updated degree days: ", results2);
-    } else {
-      console.log("degree days: ", results1);
-    }
+    await soacYearlyDDModel.updateOne(
+      { name: name, startDate: { $gte: new Date(`${currentYear}-01-01`).toISOString().slice(0, 10) } },
+      { $set: { totalDegreeDays: tempRunningDDA, lastInput: new Date().toISOString().slice(0, 10) } },
+    );
   } catch (error) {
-    console.error("Error occurred:", (error as Error).message);
+    console.error("Error occurred is storeDayDD:", (error as Error).message);
     return -1;
   }
-  return 0;
 }
 
 /**
@@ -308,47 +218,55 @@ async function getRunningDDA(name: string = "Western Cherry", fromDate: Date | D
  * @param fromDate The date to calculate the degree days from
  * @returns For testing purposes, returns 0 if successful and -1 if there was an error
  */
-async function calculateRunningDDA(fromDate: Date | Date = new Date(currentYear, 0)) {
-  try {
-    // Get the data from the database
-    const results = await soacDailyDDModel.find({ name: "Western Cherry"}).exec();
-    if (results.length === 0) {
-      throw new Error("No data found");
-    }
-    let totalDegreeDays = 0;
-    for (let i = 0; i < results.length; i++) {
-      totalDegreeDays += results[i].degreeDays;
-    }
-    console.log("Total degree days: ", totalDegreeDays);
-    return totalDegreeDays;
-  } catch (error) {
-    console.error("Error occurred in calculateRunningDDA:", (error as Error).message);
-    return -1;
-  }
-}
+async function calculateRunningDDA(fromDate: Date | Date = new Date(currentYear, 0, 1)) {
+  const temps = [
+    { name: "Western Cherry", storeTotal: "wcTotalDDA" },
+    { name: "Leaf Rollers", storeTotal: "lrTotalDDA" },
+    { name: "Codling Moth", storeTotal: "cmTotalDDA" },
+    { name: "Apple Scab", storeTotal: "asTotalDDA" },
+  ];
+  for (let i = 0; i < 4; i++) {
+    try {
+      const yearData = await soacYearlyDDModel
+        .find({ name: temps[i].name, startDate: { $gte: fromDate.toISOString().slice(0, 10) } }, { _id: 0, name: 1, totalDegreeDays: 1 })
+        .exec();
+      if (yearData.length === 0) {
+        throw new Error("No data found");
+      }
 
-/**
- * @description Function to check if running dd are accurate and if not, update the database
- * @returns For testing purposes, returns 0 if successful and -1 if there was an error
- */
-async function checkRunningDDA() {
-  try {
-    // This will compare the current running degree days vs the a new calculated running degree days
-    let tempRunningDDA = await calculateRunningDDA();
-    if (tempRunningDDA === (await getRunningDDA())) {
-      // If they are the same, do nothing
-      console.log("Running degree days are the same");
-    } else {
-      // and if they are not the same, update the database with the new calculated running degree days
-      console.log("Running degree days are different");
-      // Update the database with the new calculated running degree days
-      storeDayDD(tempRunningDDA);
+      // Get Daily data here
+      const dailyData = await soacDailyDDModel.find({ name: temps[i].name, date: { $gte: fromDate.toISOString().slice(0, 10) } }).exec();
+      if (dailyData.length === 0) {
+        throw new Error("No data found");
+      }
+      let totalDegreeDays = 0;
+      for (let i = 0; i < dailyData.length; i++) {
+        totalDegreeDays += dailyData[i].degreeDays;
+      }
+
+      if (yearData[0].totalDegreeDays < totalDegreeDays || yearData[0].totalDegreeDays !== totalDegreeDays) {
+        await storeDayDD(temps[i].name, totalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
+        try {
+          const yearData2 = await soacYearlyDDModel.find({ name: temps[i].name }, { _id: 0, name: 1, totalDegreeDays: 1 }).exec();
+          console.log("Updated degree days: ", yearData2); // Testing
+          storedData.Metric[temps[i].storeTotal] = totalDegreeDays; // Store data
+          console.log(temps[i].name + " " + temps[i].storeTotal);
+          continue;
+        } catch (error) {
+          console.error("Error occurred in getRunningDDA after update:", (error as Error).message);
+          return -1; // Bad return
+        }
+      } else {
+        console.log("degree days: ", yearData); // Testing
+        storedData.Metric[temps[i].storeTotal] = totalDegreeDays;
+        console.log(temps[i].name + " " + temps[i].storeTotal);
+        continue;
+      }
+    } catch (error) {
+      console.error("Error occurred in getRunningDDA:", (error as Error).message);
+      return -1; // Bad return
     }
-  } catch (error) {
-    console.error("Error occurred:", (error as Error).message);
-    return -1;
   }
-  return 0;
 }
 
 /**
