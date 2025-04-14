@@ -187,6 +187,8 @@ async function sendProcessedData(req: any, res: any, next: any) {
     // await fetchAndStoreData(specificDate, dayAfter);
     await calculateRunningDDA();
 
+    await storeNewDate("Western Cherry", "2025-03-01", null);
+
     res.json(storedData.Metric); // Respond with processed data
   } catch (error) {
     console.error("Error occurred:", (error as Error).message);
@@ -209,6 +211,32 @@ async function storeDayDD(name: string, tempRunningDDA: number) {
     );
   } catch (error) {
     console.error("Error occurred is storeDayDD:", (error as Error).message);
+    return -1;
+  }
+}
+
+/**
+ * 
+ * @param name 
+ * @param changeStart 
+ * @param changeEnd 
+ * @returns 
+ */
+async function storeNewDate(name: string, changeStart?: string | null, changeEnd?: string | null) {
+  try {
+    const filter = {
+      name: name,
+      startDate: { $gte: new Date(`${currentYear}-01-01`).toISOString().slice(0, 10) },
+    };
+    if (changeStart != null && changeEnd != null) {
+      await soacYearlyDDModel.updateMany(filter, { $set: { startDate: changeStart, endDate: changeEnd } });
+    } else if (changeStart != null) {
+      await soacYearlyDDModel.updateOne(filter, { $set: { startDate: changeStart } });
+    } else if (changeEnd != null) {
+      await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
+    }
+  } catch (error) {
+    console.error("Error occurred in storeNewDate:", (error as Error).message);
     return -1;
   }
 }
