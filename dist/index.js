@@ -80,6 +80,7 @@ app.listen(PORT, () => {
 });
 // app.post("/post", asyncHandler(getProcessedData)); // Route to fetch and process data
 app.post("/sendData", asyncHandler(sendProcessedData)); // Sends most updated data
+app.post("/newDate", asyncHandler(setNewDate));
 app.get("/health", (req, res) => {
     res.status(200).send("OK"); // Health check route
 });
@@ -147,12 +148,25 @@ async function sendProcessedData(req, res, next) {
         // Fetch and store data
         // await fetchAndStoreData(specificDate, dayAfter);
         await calculateRunningDDA();
-        await storeNewDate("Western Cherry", "2025-04-05", null);
         res.json(storedData.Metric); // Respond with processed data
     }
     catch (error) {
         console.error("Error occurred:", error.message);
         next(error); // Pass the error to error-handling middleware
+    }
+}
+async function setNewDate(req, res, nexts) {
+    try {
+        const name = req.body.name;
+        const newStartDate = req.body.startDate;
+        const newEndDate = req.body.endDate;
+        console.log(name);
+        console.log(newStartDate);
+        console.log(newEndDate);
+        // await storeNewDate(name, newStartDate, newEndDate);
+    }
+    catch (error) {
+        console.error("Error in setNewDate", error.message);
     }
 }
 const currentYear = new Date().getFullYear();
