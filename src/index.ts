@@ -333,8 +333,6 @@ async function calculateRunningDDA(fromDate: Date | Date = new Date(currentYear,
         throw new Error("No data found");
       }
 
-      console.log(currDayData);
-
       // Tally DD's
       let totalDegreeDays = 0;
       for (let i = 0; i < dailyData.length; i++) {
@@ -346,7 +344,7 @@ async function calculateRunningDDA(fromDate: Date | Date = new Date(currentYear,
         await storeDayDD(metricName[i], totalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
       }
 
-      storedData.Metric[metricName[i]].dailyDegreeDays = dailyData[0].degreeDays; // Store daily Degree Days
+      storedData.Metric[metricName[i]].dailyDegreeDays = currDayData[0].degreeDays; // Store daily Degree Days
       storedData.Metric[metricName[i]].totalDegreeDays = totalDegreeDays; // Store total Degree Days
     } catch (error) {
       throw new Error("Error occurred in getRunningDDA");
