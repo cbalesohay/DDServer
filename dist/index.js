@@ -37,16 +37,33 @@ const degreeDayType = {
         infectionPhase: 0, // 300 - 700 degree days
     },
 };
+let metricName = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"];
 let storedData = {
     Metric: {
-        wcDayDegreeDay: 0,
-        lrDayDegreeDay: 0,
-        cmDayDegreeDay: 0,
-        asDayDegreeDay: 0,
-        wcTotalDDA: 0,
-        lrTotalDDA: 0,
-        cmTotalDDA: 0,
-        asTotalDDA: 0,
+        "Western Cherry": {
+            dailyDegreeDays: 0,
+            totalDegreeDays: 0,
+            startDate: "",
+            endDate: "",
+        },
+        "Leaf Rollers": {
+            dailyDegreeDays: 0,
+            totalDegreeDays: 0,
+            startDate: "",
+            endDate: "",
+        },
+        "Codling Moth": {
+            dailyDegreeDays: 0,
+            totalDegreeDays: 0,
+            startDate: "",
+            endDate: "",
+        },
+        "Apple Scab": {
+            dailyDegreeDays: 0,
+            totalDegreeDays: 0,
+            startDate: "",
+            endDate: "",
+        },
         dayLow: 1000,
         dayHigh: -1000,
         dayAverage: 0,
@@ -149,24 +166,33 @@ async function sendProcessedData(req, res, next) {
         // await fetchAndStoreData(specificDate, dayAfter);
         await calculateRunningDDA();
         res.json(storedData.Metric); // Respond with processed data
+        return 0;
     }
     catch (error) {
-        console.error("Error occurred:", error.message);
-        next(error); // Pass the error to error-handling middleware
+        throw new Error("Error occurred in sendProcessedData");
     }
 }
-async function setNewDate(req, res, nexts) {
+async function setNewDate(req, res) {
     try {
         const name = req.body.name;
-        const newStartDate = req.body.startDate;
-        const newEndDate = req.body.endDate;
-        console.log(name);
-        console.log(newStartDate);
-        console.log(newEndDate);
-        // await storeNewDate(name, newStartDate, newEndDate);
+        const newStartDate = req.body.startDate || null;
+        const newEndDate = req.body.endDate || null;
+        await storeNewDate(name, newStartDate, newEndDate);
+        res.status(200).json({ message: "Success" });
+        // Log the request
+        console.log("------------------------------");
+        console.log("Change Made");
+        console.log("Name:       " + name);
+        if (newStartDate != null)
+            console.log("Start Date: " + newStartDate);
+        if (newEndDate != null)
+            console.log("End Date:   " + newEndDate);
+        console.log("------------------------------");
+        return 0;
     }
     catch (error) {
-        console.error("Error in setNewDate", error.message);
+        res.status(400).json({ message: "Error" });
+        throw new Error("Error setting new date");
     }
 }
 const currentYear = new Date().getFullYear();
@@ -178,10 +204,10 @@ async function storeDayDD(name, tempRunningDDA) {
     // Push the new degree day data to the database
     try {
         await soacYearlyDDModel.updateOne({ name: name, startDate: { $gte: new Date(`${currentYear}-01-01`).toISOString().slice(0, 10) } }, { $set: { totalDegreeDays: tempRunningDDA, lastInput: new Date().toISOString().slice(0, 10) } });
+        return 0;
     }
     catch (error) {
-        console.error("Error occurred is storeDayDD:", error.message);
-        return -1;
+        throw new Error("Error occurred is storeDayDD");
     }
 }
 /**
@@ -199,17 +225,21 @@ async function storeNewDate(name, changeStart, changeEnd) {
         };
         if (changeStart != null && changeEnd != null) {
             await soacYearlyDDModel.updateMany(filter, { $set: { startDate: changeStart, endDate: changeEnd } });
+            storedData.Metric[metricName[0]].startDate = changeStart;
+            storedData.Metric[metricName[0]].endDate = changeEnd;
         }
         else if (changeStart != null) {
             await soacYearlyDDModel.updateOne(filter, { $set: { startDate: changeStart } });
+            storedData.Metric[metricName[0]].startDate = changeStart;
         }
         else if (changeEnd != null) {
             await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
+            storedData.Metric[metricName[0]].endDate = changeEnd;
         }
+        return 0;
     }
     catch (error) {
-        console.error("Error occurred in storeNewDate:", error.message);
-        return -1;
+        throw new Error("Error occurred in storeNewDate");
     }
 }
 /**
@@ -218,53 +248,38 @@ async function storeNewDate(name, changeStart, changeEnd) {
  * @returns For testing purposes, returns 0 if successful and -1 if there was an error
  */
 async function calculateRunningDDA(fromDate = new Date(currentYear, 0, 1)) {
-    const temps = [
-        { name: "Western Cherry", storeTotal: "wcTotalDDA" },
-        { name: "Leaf Rollers", storeTotal: "lrTotalDDA" },
-        { name: "Codling Moth", storeTotal: "cmTotalDDA" },
-        { name: "Apple Scab", storeTotal: "asTotalDDA" },
-    ];
     for (let i = 0; i < 4; i++) {
         try {
             const yearData = await soacYearlyDDModel
-                .find({ name: temps[i].name, startDate: { $gte: fromDate.toISOString().slice(0, 10) } }, { _id: 0, name: 1, totalDegreeDays: 1 })
+                .find({ name: metricName[i], startDate: { $gte: fromDate.toISOString().slice(0, 10) } }, { _id: 0, name: 1, totalDegreeDays: 1 })
                 .exec();
             if (yearData.length === 0) {
                 throw new Error("No data found");
             }
             // Get Daily data here
-            const dailyData = await soacDailyDDModel.find({ name: temps[i].name, date: { $gte: fromDate.toISOString().slice(0, 10) } }).exec();
+            const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: fromDate.toISOString().slice(0, 10) } }).exec();
             if (dailyData.length === 0) {
                 throw new Error("No data found");
             }
+            const currDayData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: new Date().toISOString().slice(0, 10) } }).exec();
+            if (dailyData.length === 0) {
+                throw new Error("No data found");
+            }
+            console.log(currDayData);
+            // Tally DD's
             let totalDegreeDays = 0;
             for (let i = 0; i < dailyData.length; i++) {
                 totalDegreeDays += dailyData[i].degreeDays;
             }
+            // If DD's are updated, then store updated data
             if (yearData[0].totalDegreeDays < totalDegreeDays || yearData[0].totalDegreeDays !== totalDegreeDays) {
-                await storeDayDD(temps[i].name, totalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
-                try {
-                    const yearData2 = await soacYearlyDDModel.find({ name: temps[i].name }, { _id: 0, name: 1, totalDegreeDays: 1 }).exec();
-                    console.log("Updated degree days: ", yearData2); // Testing
-                    storedData.Metric[temps[i].storeTotal] = totalDegreeDays; // Store data
-                    console.log(temps[i].name + " " + temps[i].storeTotal);
-                    continue;
-                }
-                catch (error) {
-                    console.error("Error occurred in getRunningDDA after update:", error.message);
-                    return -1; // Bad return
-                }
+                await storeDayDD(metricName[i], totalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
             }
-            else {
-                console.log("degree days: ", yearData); // Testing
-                storedData.Metric[temps[i].storeTotal] = totalDegreeDays;
-                console.log(temps[i].name + " " + temps[i].storeTotal);
-                continue;
-            }
+            storedData.Metric[metricName[i]].dailyDegreeDays = dailyData[0].degreeDays; // Store daily Degree Days
+            storedData.Metric[metricName[i]].totalDegreeDays = totalDegreeDays; // Store total Degree Days
         }
         catch (error) {
-            console.error("Error occurred in getRunningDDA:", error.message);
-            return -1; // Bad return
+            throw new Error("Error occurred in getRunningDDA");
         }
     }
 }
@@ -303,25 +318,32 @@ function storeTemperature(users) {
  * Stores the degree day for the day
  */
 function storeDegreeDay() {
-    storedData.Metric.wcDayDegreeDay =
-        (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Western Cherry"].baseTemp);
-    storedData.Metric.lrDayDegreeDay =
-        (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Leaf Rollers"].baseTemp);
-    storedData.Metric.cmDayDegreeDay =
-        (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Codling Moth"].baseTemp);
-    storedData.Metric.asDayDegreeDay =
-        (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Apple Scab"].baseTemp);
-    if ((storedData.Metric.wcDayDegreeDay ?? 0) < 0) {
-        storedData.Metric.wcDayDegreeDay = 0;
-    }
-    if ((storedData.Metric.lrDayDegreeDay ?? 0) < 0) {
-        storedData.Metric.lrDayDegreeDay = 0;
-    }
-    if ((storedData.Metric.cmDayDegreeDay ?? 0) < 0) {
-        storedData.Metric.cmDayDegreeDay = 0;
-    }
-    if ((storedData.Metric.asDayDegreeDay ?? 0) < 0) {
-        storedData.Metric.asDayDegreeDay = 0;
+    // storedData.Metric.wcDayDegreeDay =
+    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Western Cherry"].baseTemp);
+    // storedData.Metric.lrDayDegreeDay =
+    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Leaf Rollers"].baseTemp);
+    // storedData.Metric.cmDayDegreeDay =
+    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Codling Moth"].baseTemp);
+    // storedData.Metric.asDayDegreeDay =
+    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Apple Scab"].baseTemp);
+    // if ((storedData.Metric.wcDayDegreeDay ?? 0) < 0) {
+    //   storedData.Metric.wcDayDegreeDay = 0;
+    // }
+    // if ((storedData.Metric.lrDayDegreeDay ?? 0) < 0) {
+    //   storedData.Metric.lrDayDegreeDay = 0;
+    // }
+    // if ((storedData.Metric.cmDayDegreeDay ?? 0) < 0) {
+    //   storedData.Metric.cmDayDegreeDay = 0;
+    // }
+    // if ((storedData.Metric.asDayDegreeDay ?? 0) < 0) {
+    //   storedData.Metric.asDayDegreeDay = 0;
+    // }
+    for (let i = 0; i < metricName.length; i++) {
+        storedData.Metric[metricName[i]].dailyDegreeDays =
+            (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType[metricName[i]].baseTemp);
+        if ((storedData.Metric[metricName[i]].dailyDegreeDays ?? 0) < 0) {
+            storedData.Metric[metricName[i]].dailyDegreeDays = 0;
+        }
     }
 }
 /**
