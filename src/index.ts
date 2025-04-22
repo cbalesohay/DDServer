@@ -61,8 +61,8 @@ let metricName: MetricName = ["Western Cherry", "Leaf Rollers", "Codling Moth", 
 type PestData = {
   dailyDegreeDays: number;
   totalDegreeDays: number;
-  startDate: string;
-  endDate: string;
+  startDate: string | Date;
+  endDate: string | Date;
 };
 
 type MetricData = {
@@ -285,7 +285,7 @@ async function storeDayDD(name: string, tempRunningDDA: number) {
  * @param changeEnd
  * @returns
  */
-async function storeNewDate(name: string, changeStart?: string | null, changeEnd?: string | null) {
+async function storeNewDate(name: string, changeStart?: string | Date | null, changeEnd?: string | Date | null) {
   try {
     const filter = {
       name: name,
