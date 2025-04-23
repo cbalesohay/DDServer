@@ -164,6 +164,9 @@ async function sendProcessedData(req, res, next) {
         console.log("Received request data:", req.body);
         // Fetch and store data
         // await fetchAndStoreData(specificDate, dayAfter);
+        for (let i = 0; i < metricName.length; i++) {
+            getDates(metricName[i]);
+        }
         await calculateRunningDDA();
         res.json(storedData.Metric); // Respond with processed data
         return 0;
@@ -242,6 +245,22 @@ async function storeNewDate(name, changeStart, changeEnd) {
         throw new Error("Error occurred in storeNewDate");
     }
 }
+async function getDates(name) {
+    try {
+        const filter = {
+            name: name,
+            startDate: { $gte: new Date(`${currentYear}-01-01`).toISOString().slice(0, 10) },
+        };
+        const data = await soacYearlyDDModel.find(filter);
+        for (let i = 0; i < metricName.length; i++) {
+            storedData.Metric[metricName[i]].startDate = data[i].startDate;
+            storedData.Metric[metricName[i]].endDate = data[i].endDate;
+        }
+    }
+    catch (error) {
+        throw new Error("Error occurred in getDates");
+    }
+}
 /**
  * @description Function to calculate running degree days
  * @param fromDate The date to calculate the degree days from
@@ -265,7 +284,6 @@ async function calculateRunningDDA(fromDate = new Date(currentYear, 0, 1)) {
             if (dailyData.length === 0) {
                 throw new Error("No data found");
             }
-            console.log(currDayData);
             // Tally DD's
             let totalDegreeDays = 0;
             for (let i = 0; i < dailyData.length; i++) {
@@ -275,7 +293,7 @@ async function calculateRunningDDA(fromDate = new Date(currentYear, 0, 1)) {
             if (yearData[0].totalDegreeDays < totalDegreeDays || yearData[0].totalDegreeDays !== totalDegreeDays) {
                 await storeDayDD(metricName[i], totalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
             }
-            storedData.Metric[metricName[i]].dailyDegreeDays = dailyData[0].degreeDays; // Store daily Degree Days
+            storedData.Metric[metricName[i]].dailyDegreeDays = currDayData[0].degreeDays; // Store daily Degree Days
             storedData.Metric[metricName[i]].totalDegreeDays = totalDegreeDays; // Store total Degree Days
         }
         catch (error) {

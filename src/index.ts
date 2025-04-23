@@ -224,6 +224,8 @@ async function sendProcessedData(req: any, res: any, next: any) {
 
     // Fetch and store data
     // await fetchAndStoreData(specificDate, dayAfter);
+
+    await getDates();
     await calculateRunningDDA();
 
     res.json(storedData.Metric); // Respond with processed data
@@ -305,6 +307,24 @@ async function storeNewDate(name: string, changeStart?: string | Date | null, ch
     return 0;
   } catch (error) {
     throw new Error("Error occurred in storeNewDate");
+  }
+}
+
+async function getDates(){
+  try{
+    const filter = {
+      startDate: { $gte: new Date(`${currentYear}-01-01`).toISOString().slice(0, 10) },
+    };
+
+    const data = await soacYearlyDDModel.find(filter);
+
+    for(let i = 0; i < metricName.length; i++){
+      storedData.Metric[metricName[i]].startDate = data[i].startDate;
+      storedData.Metric[metricName[i]].endDate = data[i].endDate;
+    }
+
+  }catch(error){
+    throw new Error("Error occurred in getDates");
   }
 }
 
