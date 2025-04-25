@@ -269,7 +269,8 @@ async function calculateRunningDDA(fromDate = new Date(currentYear, 0, 1)) {
     for (let i = 0; i < 4; i++) {
         try {
             // Get Daily data here
-            const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: fromDate.toISOString().slice(0, 10) } }).exec();
+            // const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: fromDate.toISOString().slice(0, 10) } }).exec();
+            const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: storedData.Metric[metricName[i]].startDate } }).exec();
             if (dailyData.length === 0) {
                 throw new Error("No data found");
             }

@@ -308,6 +308,10 @@ async function storeNewDate(name: string, changeStart?: string | Date | null, ch
   }
 }
 
+/**
+ * @description Function to get the year data from the database
+ * @returns The year data from the database
+ */
 async function getYearData() {
   try {
     const filter = {
@@ -331,14 +335,14 @@ async function getYearData() {
 
 /**
  * @description Function to calculate running degree days
- * @param fromDate The date to calculate the degree days from
  * @returns For testing purposes, returns 0 if successful and -1 if there was an error
  */
-async function calculateRunningDDA(fromDate: Date | Date = new Date(currentYear, 0, 1)) {
+async function calculateRunningDDA() {
   for (let i = 0; i < 4; i++) {
     try {
       // Get Daily data here
-      const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: fromDate.toISOString().slice(0, 10) } }).exec();
+
+      const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: storedData.Metric[metricName[i]].startDate } }).exec();
       if (dailyData.length === 0) {
         throw new Error("No data found");
       }
@@ -370,7 +374,6 @@ async function calculateRunningDDA(fromDate: Date | Date = new Date(currentYear,
 
       // Store the data
       storedData.Metric[metricName[i]].totalDegreeDays = totalDegreeDays; // Store total Degree Days
-
     } catch (error) {
       console.error("Error occurred in calculateRunningDDA:", error);
       throw new Error("Error occurred in getRunningDDA");
@@ -416,27 +419,6 @@ function storeTemperature(users: any) {
  * Stores the degree day for the day
  */
 function storeDegreeDay() {
-  // storedData.Metric.wcDayDegreeDay =
-  //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Western Cherry"].baseTemp);
-  // storedData.Metric.lrDayDegreeDay =
-  //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Leaf Rollers"].baseTemp);
-  // storedData.Metric.cmDayDegreeDay =
-  //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Codling Moth"].baseTemp);
-  // storedData.Metric.asDayDegreeDay =
-  //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Apple Scab"].baseTemp);
-  // if ((storedData.Metric.wcDayDegreeDay ?? 0) < 0) {
-  //   storedData.Metric.wcDayDegreeDay = 0;
-  // }
-  // if ((storedData.Metric.lrDayDegreeDay ?? 0) < 0) {
-  //   storedData.Metric.lrDayDegreeDay = 0;
-  // }
-  // if ((storedData.Metric.cmDayDegreeDay ?? 0) < 0) {
-  //   storedData.Metric.cmDayDegreeDay = 0;
-  // }
-  // if ((storedData.Metric.asDayDegreeDay ?? 0) < 0) {
-  //   storedData.Metric.asDayDegreeDay = 0;
-  // }
-
   for (let i = 0; i < metricName.length; i++) {
     storedData.Metric[metricName[i]].dailyDegreeDays =
       (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType[metricName[i]].baseTemp);
