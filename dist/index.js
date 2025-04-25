@@ -161,7 +161,6 @@ async function sendProcessedData(req, res, next) {
         const specificDate = req.body.date;
         const dayAfter = new Date(specificDate);
         dayAfter.setDate(dayAfter.getDate() + 1);
-        console.log("Received request data:", req.body);
         // Fetch and store data
         await getYearData();
         await calculateRunningDDA();
@@ -242,13 +241,16 @@ async function storeNewDate(name, changeStart, changeEnd) {
         throw new Error("Error occurred in storeNewDate");
     }
 }
+/**
+ * @description Function to get the year data from the database
+ * @returns The year data from the database
+ */
 async function getYearData() {
     try {
         const filter = {
             startDate: { $gte: new Date(`${currentYear}-01-01`).toISOString().slice(0, 10) },
         };
         const data = await soacYearlyDDModel.find(filter);
-        console.log(data);
         for (let i = 0; i < metricName.length; i++) {
             storedData.Metric[metricName[i]].startDate = data[i].startDate;
             storedData.Metric[metricName[i]].endDate = data[i].endDate;
@@ -262,33 +264,20 @@ async function getYearData() {
 }
 /**
  * @description Function to calculate running degree days
- * @param fromDate The date to calculate the degree days from
  * @returns For testing purposes, returns 0 if successful and -1 if there was an error
  */
-async function calculateRunningDDA(fromDate = new Date(currentYear, 0, 1)) {
+async function calculateRunningDDA() {
     for (let i = 0; i < 4; i++) {
+        let totalDegreeDays = 0;
+        // Get Daily data here
         try {
-            // Get Daily data here
-            // const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: fromDate.toISOString().slice(0, 10) } }).exec();
             const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: storedData.Metric[metricName[i]].startDate } }).exec();
             if (dailyData.length === 0) {
                 throw new Error("No data found");
             }
-            try {
-                const currDayData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: new Date().toISOString().slice(0, 10) } }).exec();
-                if (dailyData.length === 0) {
-                    throw new Error("No data found");
-                }
-                storedData.Metric[metricName[i]].dailyDegreeDays = currDayData[i].degreeDays; // Store daily Degree Days
-            }
-            catch (error) {
-                storedData.Metric[metricName[i]].dailyDegreeDays = 0; // Store daily Degree Days
-                console.log("No current day data");
-            }
             // Tally DD's
-            let totalDegreeDays = 0;
-            for (let i = 0; i < dailyData.length; i++) {
-                totalDegreeDays += dailyData[i].degreeDays;
+            for (let j = 0; j < dailyData.length; j++) {
+                totalDegreeDays += dailyData[j].degreeDays;
             }
             // If DD's are updated, then store updated data
             if (storedData.Metric[metricName[i]].totalDegreeDays < totalDegreeDays ||
@@ -299,8 +288,20 @@ async function calculateRunningDDA(fromDate = new Date(currentYear, 0, 1)) {
             storedData.Metric[metricName[i]].totalDegreeDays = totalDegreeDays; // Store total Degree Days
         }
         catch (error) {
-            console.error("Error occurred in calculateRunningDDA:", error);
-            throw new Error("Error occurred in getRunningDDA");
+            console.error("Error occurred getting daily data:", error);
+            throw new Error("Error occurred in getting daily data");
+        }
+        try {
+            const currDayData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: new Date().toISOString().slice(0, 10) } }).exec();
+            if (currDayData.length === 0) {
+                throw new Error("No data found");
+            }
+            storedData.Metric[metricName[i]].dailyDegreeDays = currDayData[0].degreeDays; // Store daily Degree Days
+        }
+        catch (error) {
+            storedData.Metric[metricName[i]].dailyDegreeDays = 0; // Store daily Degree Days
+            console.log("Error occurred getting curr day data:", error);
+            throw new Error("Error occurred in getting curr day data");
         }
     }
 }
@@ -339,26 +340,6 @@ function storeTemperature(users) {
  * Stores the degree day for the day
  */
 function storeDegreeDay() {
-    // storedData.Metric.wcDayDegreeDay =
-    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Western Cherry"].baseTemp);
-    // storedData.Metric.lrDayDegreeDay =
-    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Leaf Rollers"].baseTemp);
-    // storedData.Metric.cmDayDegreeDay =
-    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Codling Moth"].baseTemp);
-    // storedData.Metric.asDayDegreeDay =
-    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType["Apple Scab"].baseTemp);
-    // if ((storedData.Metric.wcDayDegreeDay ?? 0) < 0) {
-    //   storedData.Metric.wcDayDegreeDay = 0;
-    // }
-    // if ((storedData.Metric.lrDayDegreeDay ?? 0) < 0) {
-    //   storedData.Metric.lrDayDegreeDay = 0;
-    // }
-    // if ((storedData.Metric.cmDayDegreeDay ?? 0) < 0) {
-    //   storedData.Metric.cmDayDegreeDay = 0;
-    // }
-    // if ((storedData.Metric.asDayDegreeDay ?? 0) < 0) {
-    //   storedData.Metric.asDayDegreeDay = 0;
-    // }
     for (let i = 0; i < metricName.length; i++) {
         storedData.Metric[metricName[i]].dailyDegreeDays =
             (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType[metricName[i]].baseTemp);
