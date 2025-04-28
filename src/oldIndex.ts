@@ -4,6 +4,8 @@ import { createRequire } from "module";
 import soacDailyDDModel from "./SoacDailyDD.js";
 import soacYearlyDDModel from "./SoacYearlyDD.js";
 import { Metric } from "./metric.js";
+import { get } from "http";
+import { start } from "repl";
 const express = myRequire("express");
 const bodyParser = myRequire("body-parser");
 const MONGODB_URI = process.env.API_KEY;
@@ -57,6 +59,69 @@ const degreeDayType: DegreeDayType = {
 type MetricName = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"];
 let metricName: MetricName = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"];
 
+type PestData = {
+  dailyDegreeDays: number;
+  totalDegreeDays: number;
+  startDate: string | Date;
+  endDate: string | Date;
+};
+
+type MetricData = {
+  "Western Cherry": PestData;
+  "Leaf Rollers": PestData;
+  "Codling Moth": PestData;
+  "Apple Scab": PestData;
+  dayLow: number;
+  dayHigh: number;
+  dayAverage: number;
+  timeOfLow: string;
+  timeOfHigh: string;
+  current: number;
+  totalRainfall: number;
+  dayRainfall: number;
+};
+
+// type StoredData = {
+//   Metric: MetricData;
+// };
+
+// let storedData: StoredData = {
+//   Metric: {
+//     "Western Cherry": {
+//       dailyDegreeDays: 0,
+//       totalDegreeDays: 0,
+//       startDate: "",
+//       endDate: "",
+//     },
+//     "Leaf Rollers": {
+//       dailyDegreeDays: 0,
+//       totalDegreeDays: 0,
+//       startDate: "",
+//       endDate: "",
+//     },
+//     "Codling Moth": {
+//       dailyDegreeDays: 0,
+//       totalDegreeDays: 0,
+//       startDate: "",
+//       endDate: "",
+//     },
+//     "Apple Scab": {
+//       dailyDegreeDays: 0,
+//       totalDegreeDays: 0,
+//       startDate: "",
+//       endDate: "",
+//     },
+//     dayLow: 1000,
+//     dayHigh: -1000,
+//     dayAverage: 0,
+//     timeOfLow: "",
+//     timeOfHigh: "",
+//     current: 0,
+//     totalRainfall: 0,
+//     dayRainfall: 0,
+//   },
+// };
+
 interface StoredData {
   metrics: { [name: string]: Metric }; // OR Metric[]
   weather: {
@@ -89,10 +154,6 @@ let storedData: StoredData = {
     dayRainfall: 0,
   },
 };
-
-storedData.metrics["Western Cherry"].thresholds?.firstFlight ? 850 : undefined;
-storedData.metrics["Leaf Rollers"].maxTemp = 85;
-storedData.metrics["Codling Moth"].maxTemp = 88;
 
 const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -134,6 +195,51 @@ app.use((err: any, req: any, res: any, next: any) => {
     },
   });
 });
+
+/**
+ *
+ * @param specificDate The specific date to fetch data for
+ * @param dayAfter The day after the specific date
+ */
+async function fetchAndStoreData(specificDate: string, dayAfter: Date) {
+  // Construct the query to filter data based on specificDate
+  const query = {
+    device: 12,
+    id: 222,
+    time: {
+      $gte: new Date(specificDate).toISOString(),
+      $lt: new Date(dayAfter).toISOString(),
+    },
+  };
+
+  // Specify the fields to return in the projection (rainfall, humidity, temperature)
+  const projection = {
+    total_rainfall: 1,
+    humidity: 1,
+    temperature: 1,
+    _id: 0, // Exclude the _id field
+  };
+
+  // Fetch the data based on the query and projection
+  const results = await soacDailyDDModel.find(query, projection).exec();
+
+  // If no results found, throw an error
+  if (!results || results.length === 0) {
+    throw new Error("No data found");
+  }
+
+  // Log the request
+  console.log("--------------------");
+  console.log("Request Made");
+  console.log("Date: " + JSON.stringify(specificDate));
+  console.log("--------------------");
+
+  // Process the data
+  storeRain(results);
+  storeHumindiy(results);
+  storeTemperature(results);
+  storeDegreeDay();
+}
 
 /**
  *
@@ -220,13 +326,17 @@ async function storeNewDate(name: string, changeStart?: string | Date | null, ch
     };
     if (changeStart != null && changeEnd != null) {
       await soacYearlyDDModel.updateMany(filter, { $set: { startDate: changeStart, endDate: changeEnd } });
+      // storedData.Metric[metricName[0]].startDate = changeStart;
+      // storedData.Metric[metricName[0]].endDate = changeEnd;
       storedData.metrics[metricName[0]].startDate = changeStart;
       storedData.metrics[metricName[0]].endDate = changeEnd;
     } else if (changeStart != null) {
       await soacYearlyDDModel.updateOne(filter, { $set: { startDate: changeStart } });
+      // storedData.Metric[metricName[0]].startDate = changeStart;
       storedData.metrics[metricName[0]].startDate = changeStart;
     } else if (changeEnd != null) {
       await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
+      // storedData.Metric[metricName[0]].endDate = changeEnd;
       storedData.metrics[metricName[0]].endDate = changeEnd;
     }
     return 0;
@@ -248,6 +358,10 @@ async function getYearData() {
     const data = await soacYearlyDDModel.find(filter);
 
     for (let i = 0; i < metricName.length; i++) {
+      // storedData.Metric[metricName[i]].startDate = data[i].startDate;
+      // storedData.Metric[metricName[i]].endDate = data[i].endDate;
+      // storedData.Metric[metricName[i]].totalDegreeDays = data[i].totalDegreeDays;
+
       storedData.metrics[metricName[i]].startDate = data[i].startDate;
       storedData.metrics[metricName[i]].endDate = data[i].endDate;
       storedData.metrics[metricName[i]].totalDegreeDays = data[i].totalDegreeDays;
@@ -268,6 +382,7 @@ async function calculateRunningDDA() {
 
     // Get Daily data here
     try {
+      // const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: storedData.Metric[metricName[i]].startDate } }).exec();
       const dailyData = await soacDailyDDModel.find({ name: metricName[i], date: { $gte: storedData.metrics[metricName[i]].startDate } }).exec();
       if (dailyData.length === 0) {
         throw new Error("No data found");
@@ -277,6 +392,13 @@ async function calculateRunningDDA() {
       for (let j = 0; j < dailyData.length; j++) {
         totalDegreeDays += dailyData[j].degreeDays;
       }
+      // If DD's are updated, then store updated data
+      // if (
+      //   storedData.Metric[metricName[i]].totalDegreeDays < totalDegreeDays ||
+      //   storedData.Metric[metricName[i]].totalDegreeDays !== totalDegreeDays
+      // ) {
+      //   await storeDayDD(metricName[i], totalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
+      // }
 
       if (
         storedData.metrics[metricName[i]].totalDegreeDays < totalDegreeDays ||
@@ -286,7 +408,8 @@ async function calculateRunningDDA() {
       }
 
       // Store the data
-      storedData.metrics[metricName[i]].updateTotalDegreeDays(totalDegreeDays);
+      // storedData.Metric[metricName[i]].totalDegreeDays = totalDegreeDays; // Store total Degree Days
+      storedData.metrics[metricName[i]].totalDegreeDays = totalDegreeDays; // Store total Degree Days
     } catch (error) {
       console.error("Error occurred getting daily data:", error);
       throw new Error("Error occurred in getting daily data");
@@ -297,9 +420,11 @@ async function calculateRunningDDA() {
       if (currDayData.length === 0) {
         throw new Error("No data found");
       }
-      storedData.metrics[metricName[i]].updateDailyDegreeDays(currDayData[0].degreeDays);
+      // storedData.Metric[metricName[i]].dailyDegreeDays = currDayData[0].degreeDays; // Store daily Degree Days
+      storedData.metrics[metricName[i]].dailyDegreeDays = currDayData[0].degreeDays; // Store daily Degree Days
     } catch (error) {
-      storedData.metrics[metricName[i]].resetDailyDegreeDays();
+      // storedData.Metric[metricName[i]].dailyDegreeDays = 0; // Store daily Degree Days
+      storedData.metrics[metricName[i]].dailyDegreeDays = 0; // Store daily Degree Days
       console.log("Error occurred getting curr day data:", error);
       throw new Error("Error occurred in getting curr day data");
     }
@@ -311,6 +436,8 @@ async function calculateRunningDDA() {
  * @param users The data to store the rainfall for
  */
 function storeRain(users: any) {
+  // storedData.Metric.totalRainfall = millimeterToInchConversion(users[users.length - 1].total_rainfall);
+  // storedData.Metric.dayRainfall = millimeterToInchConversion(users[users.length - 1].total_rainfall - users[0].total_rainfall);
   storedData.weather.totalRainfall = millimeterToInchConversion(users[users.length - 1].total_rainfall);
   storedData.weather.dayRainfall = millimeterToInchConversion(users[users.length - 1].total_rainfall - users[0].total_rainfall);
 }
@@ -323,6 +450,7 @@ function storeHumindiy(users: any) {
   // Determins average humidity for the day
   sortMetric(users, "humidity"); // humidity
   // Sets Humidity in Percentage
+  // storedData.Metric.dayAverage = Number(storedData.Metric.dayAverage ?? 0);
   storedData.weather.dayAverage = Number(storedData.weather.dayAverage ?? 0);
 }
 
@@ -334,10 +462,35 @@ function storeTemperature(users: any) {
   // Determines high and low temp for day
   sortMetric(users, "temperature");
   // Sets and Converts Celcius to Fahrenheit
+  // storedData.Metric.dayLow = Number(fahrenheitConversion(Number(storedData.Metric.dayLow ?? 0)));
+  // storedData.Metric.dayHigh = Number(fahrenheitConversion(Number(storedData.Metric.dayHigh ?? 0)));
+  // storedData.Metric.dayAverage = Number(fahrenheitConversion(Number(storedData.Metric.dayAverage ?? 0)));
+  // storedData.Metric.current = Number(fahrenheitConversion(Number(storedData.Metric.current ?? 0)));
+
   storedData.weather.dayLow = Number(fahrenheitConversion(Number(storedData.weather.dayLow ?? 0)));
   storedData.weather.dayHigh = Number(fahrenheitConversion(Number(storedData.weather.dayHigh ?? 0)));
   storedData.weather.dayAverage = Number(fahrenheitConversion(Number(storedData.weather.dayAverage ?? 0)));
   storedData.weather.current = Number(fahrenheitConversion(Number(storedData.weather.current ?? 0)));
+}
+
+/**
+ * Stores the degree day for the day
+ */
+function storeDegreeDay() {
+  for (let i = 0; i < metricName.length; i++) {
+    // storedData.Metric[metricName[i]].dailyDegreeDays =
+    //   (Number(storedData.Metric.dayLow) + Number(storedData.Metric.dayHigh)) / 2 - Number(degreeDayType[metricName[i]].baseTemp);
+    storedData.metrics[metricName[i]].dailyDegreeDays =
+      (Number(storedData.weather.dayLow) + Number(storedData.weather.dayHigh)) / 2 - Number(degreeDayType[metricName[i]].baseTemp);
+
+    // if ((storedData.Metric[metricName[i]].dailyDegreeDays ?? 0) < 0) {
+    //   storedData.Metric[metricName[i]].dailyDegreeDays = 0;
+    // }
+
+    if ((storedData.metrics[metricName[i]].dailyDegreeDays ?? 0) < 0) {
+      storedData.metrics[metricName[i]].dailyDegreeDays = 0;
+    }
+  }
 }
 
 /**
@@ -366,9 +519,19 @@ function millimeterToInchConversion(millimeters: number) {
  * @param metric The metric to sort by
  */
 function sortMetric(results: any, metric: string) {
+  // (storedData.Metric.dayLow = 1000), (storedData.Metric.dayHigh = -1000), (storedData.Metric.dayAverage = 0), (storedData.Metric.current = 0);
   (storedData.weather.dayLow = 1000), (storedData.weather.dayHigh = -1000), (storedData.weather.dayAverage = 0), (storedData.weather.current = 0);
   let total = 0;
   for (let i = 0; i < results.length; i++) {
+    // if (results[i][metric] > (storedData.Metric.dayHigh ?? 0)) {
+    //   storedData.Metric.dayHigh = results[i][metric];
+    //   storedData.Metric.timeOfHigh = results[i].time;
+    // }
+    // if (results[i][metric] < (storedData.Metric.dayLow ?? 0)) {
+    //   storedData.Metric.dayLow = results[i][metric];
+    //   storedData.Metric.timeOfLow = results[i].time;
+    // }
+
     if (results[i][metric] > (storedData.weather.dayHigh ?? 0)) {
       storedData.weather.dayHigh = results[i][metric];
       storedData.weather.timeOfHigh = results[i].time;
@@ -379,6 +542,10 @@ function sortMetric(results: any, metric: string) {
     }
     total += results[i][metric];
   }
+  // storedData.Metric.current = results[results.length - 1][metric];
+
+  // storedData.Metric.dayAverage = total / results.length;
+
   storedData.weather.current = results[results.length - 1][metric];
 
   storedData.weather.dayAverage = total / results.length;
