@@ -33,7 +33,7 @@ Steps to include your mongoDB connection into this backend:
 
 ## Metric Alter
 
-Change tailored metrics:
+Locations to change tailored metrics:
 
 - Inside `metric.ts` and `weatherStats.ts` classes you can alter the data points and metrics you want to track
 - Inside `createMetricData.ts` you can initialize your metric class instances with specific data
