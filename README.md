@@ -24,9 +24,9 @@ npm run start
 
 Steps to include your mongoDB connection into this backend:
 
-1. Create a **.env** file in the root directory of the project
-2. After adding your api key to the .env file, add you api key to the process.env."your-api" located inside index.ts
-3. Modify **SoacDailyDD.ts** and **SoacYearlyDD.ts** schemas to match your specific dataset
+1. Create a `.env` file in the root directory of the project
+2. After adding your api key to the .env file, add you api key to the `process.env.<your-api>` located inside index.ts
+3. Modify `SoacDailyDD.ts` and `SoacYearlyDD.ts` schemas to match your specific dataset
 4. `npm run build` to build the project
 5. `npm run dev` to test api connection to mongoDB
 6. Message in console should read "Connected to MongoDB"
@@ -35,5 +35,5 @@ Steps to include your mongoDB connection into this backend:
 
 Change tailored metrics:
 
-- Inside **metric.ts** and **weatherStats.ts** classes you can alter the data points and metrics you want to track
-- Inside **createMetricData.ts** you can initialize your metric class instances with specific data
+- Inside `metric.ts` and `weatherStats.ts` classes you can alter the data points and metrics you want to track
+- Inside `createMetricData.ts` you can initialize your metric class instances with specific data
