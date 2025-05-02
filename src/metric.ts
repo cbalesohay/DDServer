@@ -1,18 +1,17 @@
 export class Metric {
+  public currentYear = new Date().getFullYear();
   public readonly name: string;
   public baseTemp: number;
   public maxTemp?: number;
   public thresholds?: {
-    peakMothFlight?: number | undefined;
-    firstHatch?: number | undefined;
-    firstFlight?: number | undefined;
+    peakMothFlight?: number;
+    firstHatch?: number;
+    firstFlight?: number;
     firstApplication?: number;
     firstSpray?: number;
     infectionPhase?: number;
     ddAfterDate?: string;
   };
-
-  public currentYear = new Date().getFullYear();
 
   private dailyDegreeDays: number = 0;
   private totalDegreeDays: number = 0;
@@ -24,20 +23,20 @@ export class Metric {
     this.baseTemp = base;
   }
 
-  updateStartDate(date: string | Date) {
-    this.startDate = date;
-  }
-
-  updateEndDate(date: string | Date) {
-    this.endDate = date;
-  }
-
   updateDailyDegreeDays(dd: number) {
     this.dailyDegreeDays = dd;
   }
 
   updateTotalDegreeDays(dd: number) {
     this.totalDegreeDays = dd;
+  }
+
+  updateStartDate(date: string | Date) {
+    this.startDate = date;
+  }
+
+  updateEndDate(date: string | Date) {
+    this.endDate = date;
   }
 
   resetDailyDegreeDays() {

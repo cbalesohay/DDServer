@@ -3,8 +3,9 @@ myRequire("dotenv").config();
 import { createRequire } from "module";
 import soacDailyDDModel from "./SoacDailyDD.js";
 import soacYearlyDDModel from "./SoacYearlyDD.js";
-import { Metric } from "./metric.js";
 import { WeatherStats } from "./weatherStats.js";
+import { createMetricData } from "./initMetrics.js";
+import { metricNames } from "./initMetrics.js";
 const express = myRequire("express");
 const bodyParser = myRequire("body-parser");
 const MONGODB_URI = process.env.API_KEY;
@@ -15,20 +16,10 @@ var cors = myRequire("cors");
 app.use(cors());
 const PORT = process.env.PORT || 4000;
 export default app;
-const metricName = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"];
-;
 let storedData = {
-    metrics: {
-        "Western Cherry": new Metric("Western Cherry", 41),
-        "Leaf Rollers": new Metric("Leaf Rollers", 41),
-        "Codling Moth": new Metric("Codling Moth", 50),
-        "Apple Scab": new Metric("Apple Scab", 32),
-    },
+    metrics: createMetricData(),
     weather: new WeatherStats(),
 };
-storedData.metrics["Western Cherry"].thresholds?.firstFlight ? 850 : undefined;
-storedData.metrics["Leaf Rollers"].maxTemp = 85;
-storedData.metrics["Codling Moth"].maxTemp = 88;
 const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
@@ -50,9 +41,8 @@ app.use(express.json());
 app.listen(PORT, () => {
     console.log(`Server running on Render port ${PORT}`);
 });
-// app.post("/post", asyncHandler(getProcessedData)); // Route to fetch and process data
 app.post("/sendData", asyncHandler(sendProcessedData)); // Sends most updated data
-app.post("/newDate", asyncHandler(setNewDate));
+app.post("/newDate", asyncHandler(setNewDate)); // Sets new date for the metric
 app.get("/health", (req, res) => {
     res.status(200).send("OK"); // Health check route
 });
@@ -69,20 +59,20 @@ app.use((err, req, res, next) => {
  *
  * @param req The request object
  * @param res The response object
- * @param next The next middleware function
+ * @returns The response object
+ * @description Function to get the processed data
+ * @throws Error if there is an error getting the processed data
  */
-async function sendProcessedData(req, res, next) {
+async function sendProcessedData(req, res) {
     try {
         // Parse request body
         const specificDate = req.body.date;
         const dayAfter = new Date(specificDate);
         dayAfter.setDate(dayAfter.getDate() + 1);
-        // Fetch and store data
-        for (let i = 0; i < metricName.length; i++) {
-            await storedData.metrics[metricName[i]].getYearData(soacYearlyDDModel);
-            await storedData.metrics[metricName[i]].calculateTotalDegreeDays(soacDailyDDModel);
+        for (const name of metricNames) {
+            await storedData.metrics[name].getYearData(soacYearlyDDModel);
+            await storedData.metrics[name].calculateTotalDegreeDays(soacDailyDDModel);
         }
-        // res.json(storedData.metrics); // Respond with processed data
         res.json(storedData); // Respond with processed data
         return 0;
     }
@@ -90,6 +80,14 @@ async function sendProcessedData(req, res, next) {
         throw new Error("Error occurred in sendProcessedData");
     }
 }
+/**
+ *
+ * @param req The request object
+ * @param res The response object
+ * @returns The response object
+ * @description Function to set the new date for the metric
+ * @throws Error if there is an error setting the new date
+ */
 async function setNewDate(req, res) {
     try {
         const name = req.body.name;
