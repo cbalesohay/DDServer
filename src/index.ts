@@ -3,6 +3,7 @@ myRequire("dotenv").config();
 import { createRequire } from "module";
 import soacDailyDDModel from "./SoacDailyDD.js";
 import soacYearlyDDModel from "./SoacYearlyDD.js";
+import soacTotalDDModel from "./SoacTotalDD.js";
 import { WeatherStats } from "./weatherStats.js";
 import { createMetricData } from "./createMetricData.js";
 import { MetricName } from "./createMetricData.js";
@@ -79,6 +80,10 @@ async function sendProcessedData(req: any, res: any) {
     const dayAfter = new Date(specificDate);
     dayAfter.setDate(dayAfter.getDate() + 1);
 
+    // Get weather data
+    // await storedData.weather.storeWeatherData(soacTotalDDModel);
+
+    // Get metric data
     for (const name of metricNames) {
       await storedData.metrics[name].getYearData(soacYearlyDDModel);
       await storedData.metrics[name].calculateTotalDegreeDays(soacDailyDDModel);

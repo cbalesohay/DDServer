@@ -9,6 +9,46 @@ export class WeatherStats {
     dayRainfall = 0;
     /**
      *
+     * @param users The data to store the weather data for
+     * @description Function to store the weather data
+     */
+    async storeWeatherData(model) {
+        const today = new Date();
+        // Construct the query to filter data based on specificDate
+        const query = {
+            device: 12,
+            id: 222,
+            time: {
+                $gte: new Date(today).toISOString(),
+                $lt: new Date(today.setDate(today.getDate() + 1)).toISOString(),
+            },
+        };
+        // Specify the fields to return in the projection (rainfall, humidity, temperature)
+        const projection = {
+            total_rainfall: 1,
+            humidity: 1,
+            temperature: 1,
+            _id: 0, // Exclude the _id field
+        };
+        try {
+            // Fetch the data based on the query and projection
+            const results = await model.find(query, projection).exec();
+            // If no results found, throw an error
+            if (!results || results.length === 0) {
+                throw new Error("No data found");
+            }
+            // Sorts the data
+            this.storeTemperature(results);
+            this.storeHumidity(results);
+            this.storeRain(results);
+        }
+        catch (error) {
+            console.error("Error occurred in storeWeatherData:", error);
+            throw new Error("Error occurred in storeWeatherData");
+        }
+    }
+    /**
+     *
      * @param users The data to store the rainfall for
      */
     storeRain(users) {

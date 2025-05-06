@@ -4,8 +4,8 @@ import { createRequire } from "module";
 import soacDailyDDModel from "./SoacDailyDD.js";
 import soacYearlyDDModel from "./SoacYearlyDD.js";
 import { WeatherStats } from "./weatherStats.js";
-import { createMetricData } from "./initMetrics.js";
-import { metricNames } from "./initMetrics.js";
+import { createMetricData } from "./createMetricData.js";
+import { metricNames } from "./createMetricData.js";
 const express = myRequire("express");
 const bodyParser = myRequire("body-parser");
 const MONGODB_URI = process.env.API_KEY;
@@ -69,12 +69,14 @@ async function sendProcessedData(req, res) {
         const specificDate = req.body.date;
         const dayAfter = new Date(specificDate);
         dayAfter.setDate(dayAfter.getDate() + 1);
+        // Get weather data
+        // await storedData.weather.storeWeatherData(soacTotalDDModel);
+        // Get metric data
         for (const name of metricNames) {
             await storedData.metrics[name].getYearData(soacYearlyDDModel);
             await storedData.metrics[name].calculateTotalDegreeDays(soacDailyDDModel);
         }
         res.json(storedData); // Respond with processed data
-        return 0;
     }
     catch (error) {
         throw new Error("Error occurred in sendProcessedData");
@@ -104,7 +106,6 @@ async function setNewDate(req, res) {
         if (newEndDate != null)
             console.log("End Date:   " + newEndDate);
         console.log("------------------------------");
-        return 0;
     }
     catch (error) {
         res.status(400).json({ message: "Error" });
