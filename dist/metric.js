@@ -1,9 +1,9 @@
 export class Metric {
+    currentYear = new Date().getFullYear();
     name;
     baseTemp;
     maxTemp;
     thresholds;
-    currentYear = new Date().getFullYear();
     dailyDegreeDays = 0;
     totalDegreeDays = 0;
     startDate = "";
@@ -12,17 +12,17 @@ export class Metric {
         this.name = name;
         this.baseTemp = base;
     }
-    updateStartDate(date) {
-        this.startDate = date;
-    }
-    updateEndDate(date) {
-        this.endDate = date;
-    }
     updateDailyDegreeDays(dd) {
         this.dailyDegreeDays = dd;
     }
     updateTotalDegreeDays(dd) {
         this.totalDegreeDays = dd;
+    }
+    updateStartDate(date) {
+        this.startDate = date;
+    }
+    updateEndDate(date) {
+        this.endDate = date;
     }
     resetDailyDegreeDays() {
         this.dailyDegreeDays = 0;
