@@ -123,3 +123,8 @@ async function setNewDate(req: any, res: any) {
     throw new Error("Error setting new date");
   }
 }
+
+// Call this fucntion every 24 hours at 12:05 am
+// for (const name of metricNames) {
+//   await storedData.metrics[name].storePrevDD(soacDailyDDModel, soacYearlyDDModel);
+// }

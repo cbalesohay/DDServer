@@ -1,4 +1,7 @@
-export class Metric {
+/**
+ * @description Class to represent a pest
+ */
+export class Pest {
   public currentYear = new Date().getFullYear();
   public readonly name: string;
   public baseTemp: number;
@@ -172,6 +175,61 @@ export class Metric {
     } catch (error) {
       console.error("Error occurred in storeDayDD:", error);
       throw new Error("Error occurred is storeDayDD");
+    }
+  }
+
+  /**
+   * @description Function to store the previous days data
+   */
+  async storePrevDD(dailyModel: any, yearlyModel: any) {
+    // Previous days data
+    const today = new Date();
+    const prevDay = today.setDate(today.getDate() - 1);
+
+    let prevTotal = -1;
+
+    try {
+      // Filter model for specific date
+      const filter = {
+        name: this.name,
+        date: { $gte: new Date(prevDay).toISOString().slice(0, 10) },
+      };
+
+      // Get the data from the database
+      const dailyData = await dailyModel.find(filter).exec();
+      if (dailyData.length === 0) throw new Error("No data found");
+
+      // calculate previous total
+      prevTotal = 0;
+      for (let i = 0; i < dailyData.length; i++) {
+        prevTotal += dailyData[i].degreeDays;
+      }
+    } catch (error) {
+      console.error("Error occurred in storePrevDD:", error);
+      throw new Error("Error occurred in totaling previous data");
+    }
+
+    // Store and update the total seasonal data
+    if(prevTotal === -1) {
+      console.error("Error occurred in storePrevDD: No data found");
+      throw new Error("Error occurred in totaling previous data");
+    } else {
+      // Store the data in the database
+      try {
+        const filter = {
+          name: this.name,
+          startDate: { $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10) },
+        };
+  
+        const yearlyData = await yearlyModel.find(filter);
+        if (yearlyData.length === 0) throw new Error("No data found");
+  
+        // Update the data in the database
+        yearlyData.updateOne({ name: this.name, totalDegreeDays: prevTotal });
+      } catch (error) {
+        console.error("Error occurred in storePrevDD:", error);
+        throw new Error("Error occurred in storing previous data");
+      }
     }
   }
 
