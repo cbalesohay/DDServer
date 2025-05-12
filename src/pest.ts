@@ -1,4 +1,7 @@
-export class Metric {
+/**
+ * @description Class to represent a pest
+ */
+export class Pest {
   public currentYear = new Date().getFullYear();
   public readonly name: string;
   public baseTemp: number;

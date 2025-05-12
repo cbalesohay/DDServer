@@ -5,9 +5,14 @@ interface WeatherReading {
   total_rainfall?: number;
 }
 
+/**
+ * @description Class to store the weather data
+ */
 export class WeatherStats {
-  private dayLow = 1000;
-  private dayHigh = -1000;
+  // private dayLow = 1000;
+  // private dayHigh = -1000;
+  private dayLow = 0;
+  private dayHigh = 0;
   private dayAverage = 0;
   private timeOfLow = "";
   private timeOfHigh = "";
