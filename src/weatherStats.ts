@@ -70,8 +70,8 @@ export class WeatherStats {
    * @param users The data to store the rainfall for
    */
   private storeRain(users: WeatherReading[]) {
-    this.totalRainfall = this.millimeterToInchConversion(users[users.length - 1].total_rainfall ?? 0);
-    this.dayRainfall = this.millimeterToInchConversion((users[users.length - 1].total_rainfall ?? 0) - (users[0].total_rainfall ?? 0));
+    // this.totalRainfall = this.millimeterToInchConversion(users[users.length - 1].total_rainfall ?? 0);
+    // this.dayRainfall = this.millimeterToInchConversion((users[users.length - 1].total_rainfall ?? 0) - (users[0].total_rainfall ?? 0));
   }
 
   /**
