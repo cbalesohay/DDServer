@@ -1,6 +1,11 @@
+/**
+ * @description Class to store the weather data
+ */
 export class WeatherStats {
-    dayLow = 1000;
-    dayHigh = -1000;
+    // private dayLow = 1000;
+    // private dayHigh = -1000;
+    dayLow = 0;
+    dayHigh = 0;
     dayAverage = 0;
     timeOfLow = "";
     timeOfHigh = "";

@@ -39,7 +39,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 app.listen(PORT, () => {
-    console.log(`Server running on Render port ${PORT}`);
+    console.log(`Server running on EC2 port ${PORT}`);
 });
 app.post("/sendData", asyncHandler(sendProcessedData)); // Sends most updated data
 app.post("/newDate", asyncHandler(setNewDate)); // Sets new date for the metric
@@ -112,3 +112,7 @@ async function setNewDate(req, res) {
         throw new Error("Error setting new date");
     }
 }
+// Call this fucntion every 24 hours at 12:05 am
+// for (const name of metricNames) {
+//   await storedData.metrics[name].storePrevDD(soacDailyDDModel, soacYearlyDDModel);
+// }

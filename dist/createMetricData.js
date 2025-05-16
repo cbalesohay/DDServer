@@ -1,4 +1,4 @@
-import { Metric } from "./metric.js";
+import { Pest } from "./pest.js";
 // Type check
 export const metricNames = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"];
 // Define the configuration for each metric
@@ -17,7 +17,7 @@ export function createMetricData() {
     const data = {};
     for (const name of metricNames) {
         const config = metricConfig[name];
-        const metric = new Metric(name, config.baseTemp);
+        const metric = new Pest(name, config.baseTemp);
         // Optioanl maxTemp param
         if (config.maxTemp !== undefined)
             metric.maxTemp = config.maxTemp;
