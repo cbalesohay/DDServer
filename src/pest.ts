@@ -234,6 +234,49 @@ export class Pest {
   }
 
   /**
+   * @description This function resets the degree days for the current year
+    * @param modelYearly The model for the yearly DD data
+    * @param modelDaily The model for the daily DD data
+    * @param modelTotal The model for the total soac data from sensors
+    * @throws Error if there is an error resetting the degree days
+   */
+  async massResetYearlyDD(modelYearly: any, modelDaily: any, modelTotal: any) {
+    try {
+      const filter = {
+        name: this.name,
+        startDate: { $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10) },
+      };
+
+
+      // Reset the daily data
+      await modelDaily.deleteMany({ name: this.name});
+      
+
+      // Update the yearly data
+      await modelYearly.updateOne(filter, { $set: { totalDegreeDays: 0 } });
+      this.updateTotalDegreeDays(0);
+
+      // Get the mass daily data
+      const dailyData = await modelDaily.find({ name: this.name, date: { $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10) } });
+
+      // Recalculate the daily degree days
+      for(let i = 0; i < modelTotal.length; i++) {
+        const dailyDD = dailyData[i].degreeDays;
+        const date = dailyData[i].date;
+
+        // Store the data
+        await modelTotal.updateOne({ name: this.name, date: date }, { $set: { degreeDays: dailyDD } });
+      }
+
+      // Recalculate the total degree days
+      await this.calculateTotalDegreeDays(modelDaily);
+    } catch (error) {
+      console.error("Error occurred in massResetYearlyDD:", error);
+      throw new Error("Error occurred in massResetYearlyDD");
+    }
+  }
+
+  /**
    *
    * @returns relevant data
    */

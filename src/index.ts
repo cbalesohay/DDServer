@@ -52,6 +52,7 @@ app.listen(PORT, () => {
 });
 app.post("/sendData", asyncHandler(sendProcessedData)); // Sends most updated data
 app.post("/newDate", asyncHandler(setNewDate)); // Sets new date for the metric
+app.post("/reCalcData", asyncHandler(resetYearData)); // Resets the year data for the metric
 app.get("/health", (req: any, res: any) => {
   res.status(200).send("OK"); // Health check route
 });
@@ -128,3 +129,21 @@ async function setNewDate(req: any, res: any) {
 // for (const name of metricNames) {
 //   await storedData.metrics[name].storePrevDD(soacDailyDDModel, soacYearlyDDModel);
 // }
+
+async function resetYearData(req: any, res: any) {
+  const year: string | Date = req.body.year;
+  try {
+    // Might be able to use storePrevDD here
+    // Get metric data
+    for (const name of metricNames) {
+      await storedData.metrics[name].massResetYearlyDD(soacYearlyDDModel, soacDailyDDModel, soacTotalDDModel);
+    }
+
+    // Log the request
+    console.log("------------------------------");
+    console.log("Recalculation Made");
+    console.log("Year:       " + year);
+    console.log("------------------------------");
+    
+  } catch (error) {}
+}
