@@ -1,3 +1,6 @@
+import { WeatherStats } from './weatherStats.js';
+import soacDailyDDModel from './SoacDailyDD.js';
+import soacYearlyDDModel from './SoacYearlyDD.js';
 /**
  * @description Class to represent a pest
  */
@@ -9,8 +12,11 @@ export class Pest {
     thresholds;
     dailyDegreeDays = 0;
     totalDegreeDays = 0;
-    startDate = "";
-    endDate = "";
+    startDate = '';
+    endDate = '';
+    tempDayLow = 0;
+    tempDayHigh = 0;
+    weatherStats = new WeatherStats();
     constructor(name, base) {
         this.name = name;
         this.baseTemp = base;
@@ -46,7 +52,8 @@ export class Pest {
      * @description Function to calculate running degree days
      * @returns For testing purposes, returns 0 if successful and -1 if there was an error
      */
-    async calculateTotalDegreeDays(model) {
+    // async calculateRunningDegreeDays(modelDaily: any, modelYearly: any) {
+    async calculateRunningDegreeDays() {
         const today = new Date().toISOString().slice(0, 10);
         let foundToday = false;
         let tempTotalDegreeDays = 0;
@@ -56,9 +63,10 @@ export class Pest {
                 name: this.name,
                 date: { $gte: this.startDate },
             };
-            const dailyData = await model.find(filter).exec();
+            // const dailyData = await modelDaily.find(filter).exec();
+            const dailyData = await soacDailyDDModel.find(filter).exec();
             if (dailyData.length === 0)
-                throw new Error("No data found");
+                throw new Error('No data found');
             // // Tally total degree days
             for (let i = 0; i < dailyData.length; i++) {
                 tempTotalDegreeDays += dailyData[i].degreeDays;
@@ -72,36 +80,41 @@ export class Pest {
                 this.resetDailyDegreeDays();
             }
             if (this.getTotalDegreeDays() < tempTotalDegreeDays || this.getTotalDegreeDays() !== tempTotalDegreeDays) {
-                await this.storeDayDD(this.name, tempTotalDegreeDays, model); // Assign tempRunningDDA to the totalDegreeDays
+                // await this.addDDToYearly(this.name, tempTotalDegreeDays, modelYearly); // Assign tempRunningDDA to the totalDegreeDays
+                // await this.addDDToYearly(this.name, tempTotalDegreeDays, soacYearlyDDModel); // Assign tempRunningDDA to the totalDegreeDays
+                await this.addDDToYearly(this.name, tempTotalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
             }
             // Store the data
             this.updateTotalDegreeDays(tempTotalDegreeDays);
         }
         catch (error) {
-            console.error("Error occurred getting daily data:", error);
-            throw new Error("Error occurred in getting daily data");
+            console.error('Error occurred getting daily data:', error);
+            throw new Error('Error occurred in getting daily data');
         }
     }
     /**
      * @description Function to get the year data from the database
      * @returns The year data from the database
      */
-    async getYearData(model) {
+    // async getYearData(modelYearly: any) {
+    async getYearData() {
         try {
             const filter = {
                 name: this.name,
-                startDate: { $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10) },
+                startDate: {
+                    $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
+                },
             };
-            const data = await model.find(filter);
+            const data = await soacYearlyDDModel.find(filter);
             if (data.length === 0)
-                throw new Error("No data found");
+                throw new Error('No data found');
             this.updateStartDate(data[0].startDate);
             this.updateEndDate(data[0].endDate);
             this.updateTotalDegreeDays(data[0].totalDegreeDays);
         }
         catch (error) {
-            console.error("Error occurred in getYearData:", error);
-            throw new Error("Error occurred in getDates");
+            console.error('Error occurred in getYearData:', error);
+            throw new Error('Error occurred in getDates');
         }
     }
     /**
@@ -111,49 +124,87 @@ export class Pest {
      * @param changeEnd
      * @returns
      */
-    async storeNewDate(model, changeStart, changeEnd) {
+    // async storeNewDate(modelYearly: any, changeStart: string | Date | null, changeEnd: string | Date | null) {
+    async storeNewDate(changeStart, changeEnd) {
         try {
             const filter = {
                 name: this.name,
-                startDate: { $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10) },
+                startDate: {
+                    $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
+                },
             };
             if (changeStart != null && changeEnd != null) {
-                await model.updateMany(filter, { $set: { startDate: changeStart, endDate: changeEnd } });
+                await soacYearlyDDModel.updateMany(filter, {
+                    $set: { startDate: changeStart, endDate: changeEnd },
+                });
                 this.updateStartDate(changeStart);
                 this.updateEndDate(changeEnd);
             }
             else if (changeStart != null) {
-                await model.updateOne(filter, { $set: { startDate: changeStart } });
+                await soacYearlyDDModel.updateOne(filter, {
+                    $set: { startDate: changeStart },
+                });
                 this.updateStartDate(changeStart);
             }
             else if (changeEnd != null) {
-                await model.updateOne(filter, { $set: { endDate: changeEnd } });
+                await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
                 this.updateEndDate(changeEnd);
             }
         }
         catch (error) {
-            console.error("Error occurred in storeNewDate:", error);
-            throw new Error("Error occurred in storeNewDate");
+            console.error('Error occurred in storeNewDate:', error);
+            throw new Error('Error occurred in storeNewDate');
         }
     }
     /**
      * @description Function to record degree day data per day
      * @param tempRunningDDA The degree day data to store
      */
-    async storeDayDD(name, tempRunningDDA, model) {
+    // async addDDToYearly(name: string, tempRunningDDA: number, modelYearly: any) {
+    async addDDToYearly(name, tempRunningDDA) {
         // Push the new degree day data to the database
         try {
-            await model.updateOne({ name: name, startDate: { $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10) } }, { $set: { totalDegreeDays: tempRunningDDA, lastInput: new Date().toISOString().slice(0, 10) } });
+            await soacYearlyDDModel.updateOne({
+                name: name,
+                startDate: {
+                    $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
+                },
+            }, {
+                $set: {
+                    totalDegreeDays: tempRunningDDA,
+                    lastInput: new Date().toISOString().slice(0, 10),
+                },
+            });
         }
         catch (error) {
-            console.error("Error occurred in storeDayDD:", error);
-            throw new Error("Error occurred is storeDayDD");
+            console.error('Error occurred in storeDayDD:', error);
+            throw new Error('Error occurred is storeDayDD');
         }
+    }
+    /**
+     *
+     * @param name The name of the pest
+     * @param tempDailyDDA The degree day data to store
+     * @param modelDaily The model for the daily DD data
+     */
+    // async addDDToDaily(name: string, tempDailyDDA: number, modelDaily: any) {
+    async addDDToDaily(name, tempDailyDDA) {
+        const dailyInput = {
+            name: name,
+            date: new Date().toISOString().slice(0, 10),
+            degreeDays: tempDailyDDA,
+        };
+        try {
+            if (!(await soacDailyDDModel.findOne(dailyInput)))
+                await soacDailyDDModel.updateOne(dailyInput);
+        }
+        catch (error) { }
     }
     /**
      * @description Function to store the previous days data
      */
-    async storePrevDD(dailyModel, yearlyModel) {
+    // async storePrevDD(modelDaily: any, modelYearly: any) {
+    async storePrevDD() {
         // Previous days data
         const today = new Date();
         const prevDay = today.setDate(today.getDate() - 1);
@@ -165,9 +216,9 @@ export class Pest {
                 date: { $gte: new Date(prevDay).toISOString().slice(0, 10) },
             };
             // Get the data from the database
-            const dailyData = await dailyModel.find(filter).exec();
+            const dailyData = await soacDailyDDModel.find(filter).exec();
             if (dailyData.length === 0)
-                throw new Error("No data found");
+                throw new Error('No data found');
             // calculate previous total
             prevTotal = 0;
             for (let i = 0; i < dailyData.length; i++) {
@@ -175,32 +226,104 @@ export class Pest {
             }
         }
         catch (error) {
-            console.error("Error occurred in storePrevDD:", error);
-            throw new Error("Error occurred in totaling previous data");
+            console.error('Error occurred in storePrevDD:', error);
+            throw new Error('Error occurred in totaling previous data');
         }
         // Store and update the total seasonal data
         if (prevTotal === -1) {
-            console.error("Error occurred in storePrevDD: No data found");
-            throw new Error("Error occurred in totaling previous data");
+            console.error('Error occurred in storePrevDD: No data found');
+            throw new Error('Error occurred in totaling previous data');
         }
         else {
             // Store the data in the database
             try {
                 const filter = {
                     name: this.name,
-                    startDate: { $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10) },
+                    startDate: {
+                        $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
+                    },
                 };
-                const yearlyData = await yearlyModel.find(filter);
+                const yearlyData = await soacYearlyDDModel.find(filter);
                 if (yearlyData.length === 0)
-                    throw new Error("No data found");
+                    throw new Error('No data found');
                 // Update the data in the database
-                yearlyData.updateOne({ name: this.name, totalDegreeDays: prevTotal });
+                yearlyData.updateOne({
+                    name: this.name,
+                    totalDegreeDays: prevTotal,
+                });
             }
             catch (error) {
-                console.error("Error occurred in storePrevDD:", error);
-                throw new Error("Error occurred in storing previous data");
+                console.error('Error occurred in storePrevDD:', error);
+                throw new Error('Error occurred in storing previous data');
             }
         }
+    }
+    /**
+     * @description This function resets the degree days for the current year
+     * @param modelYearly The model for the yearly DD data
+     * @param modelDaily The model for the daily DD data
+     * @param modelTotal The model for the total soac data from sensors
+     * @throws Error if there is an error resetting the degree days
+     */
+    // async massResetYearlyDD(modelYearly: any, modelDaily: any, modelTotal: any) {
+    async massResetYearlyDD() {
+        try {
+            const filter = {
+                name: this.name,
+                startDate: {
+                    $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
+                },
+            };
+            await soacDailyDDModel.deleteMany({ name: this.name }); // Reset the daily data for this.name
+            await soacYearlyDDModel.updateOne(filter, {
+                $set: { totalDegreeDays: 0 },
+            }); // Update the yearly data for this.name
+            this.updateTotalDegreeDays(0); // Update the total degree days for this.name
+            // Calculate the daily degree days from modelTotal
+            // // Get the total daily data
+            // const filterTotal = await modelTotal.find({
+            //   name: this.name,
+            //   date: {
+            //     $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
+            //   },
+            // });
+            // Recalculate the daily degree days
+            // for (let i = 0; i < modelTotal.length; i++) {
+            //   const dailyDD = filterTotal[i].degreeDays;
+            //   const date = filterTotal[i].date;
+            //   await modelDaily.updateOne({ name: this.name, date: date }, { $set: { degreeDays: dailyDD } }); // Store the data
+            // }
+            // Recalculate the total degree days
+            // await this.calculateRunningDegreeDays(modelDaily, modelYearly); // Recalculate the total degree days
+            await this.calculateRunningDegreeDays(); // Recalculate the total degree days
+        }
+        catch (error) {
+            console.error('Error occurred in massResetYearlyDD:', error);
+            throw new Error('Error occurred in massResetYearlyDD');
+        }
+    }
+    /**
+     *
+     * @param modelTotal The model for the total soac data from sensors
+     * @param date The date to calculate the degree days for
+     * @description Function to calculate the daily degree days
+     */
+    // async calculateDailyDegreeDays(modelTotal: any, date: Date) {
+    async calculateDailyDegreeDays(date) {
+        // this.weatherStats.storeWeatherData(modelTotal, date);
+        this.weatherStats.storeWeatherData(date);
+        this.tempDayLow = this.weatherStats.getLowTemp();
+        this.tempDayHigh = this.weatherStats.getHighTemp();
+        // (Low + High)
+        // ------------  - Base Temp
+        //      2
+        this.dailyDegreeDays = (this.tempDayLow + this.tempDayHigh) / 2 - this.baseTemp;
+        this.dailyDegreeDays = Math.max(this.dailyDegreeDays, 0);
+        try {
+            // await this.addDDToYearly(this.name, this.dailyDegreeDays, modelTotal);
+            await this.addDDToYearly(this.name, this.dailyDegreeDays);
+        }
+        catch (error) { }
     }
     /**
      *
