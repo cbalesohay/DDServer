@@ -1,4 +1,7 @@
 import { WeatherStats } from './weatherStats.js';
+import soacDailyDDModel from './SoacDailyDD.js';
+import soacYearlyDDModel from './SoacYearlyDD.js';
+import soacTotalDDModel from './SoacTotalDD.js';
 
 /**
  * @description Class to represent a pest
@@ -71,7 +74,8 @@ export class Pest {
    * @description Function to calculate running degree days
    * @returns For testing purposes, returns 0 if successful and -1 if there was an error
    */
-  async calculateRunningDegreeDays(modelDaily: any, modelYearly: any) {
+  // async calculateRunningDegreeDays(modelDaily: any, modelYearly: any) {
+  async calculateRunningDegreeDays() {
     const today = new Date().toISOString().slice(0, 10);
     let foundToday = false;
     let tempTotalDegreeDays = 0;
@@ -83,7 +87,8 @@ export class Pest {
         date: { $gte: this.startDate },
       };
 
-      const dailyData = await modelDaily.find(filter).exec();
+      // const dailyData = await modelDaily.find(filter).exec();
+      const dailyData = await soacDailyDDModel.find(filter).exec();
       if (dailyData.length === 0) throw new Error('No data found');
 
       // // Tally total degree days
@@ -102,7 +107,9 @@ export class Pest {
       }
 
       if (this.getTotalDegreeDays() < tempTotalDegreeDays || this.getTotalDegreeDays() !== tempTotalDegreeDays) {
-        await this.addDDToYearly(this.name, tempTotalDegreeDays, modelYearly); // Assign tempRunningDDA to the totalDegreeDays
+        // await this.addDDToYearly(this.name, tempTotalDegreeDays, modelYearly); // Assign tempRunningDDA to the totalDegreeDays
+        // await this.addDDToYearly(this.name, tempTotalDegreeDays, soacYearlyDDModel); // Assign tempRunningDDA to the totalDegreeDays
+        await this.addDDToYearly(this.name, tempTotalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
       }
 
       // Store the data
@@ -117,7 +124,8 @@ export class Pest {
    * @description Function to get the year data from the database
    * @returns The year data from the database
    */
-  async getYearData(modelYearly: any) {
+  // async getYearData(modelYearly: any) {
+  async getYearData() {
     try {
       const filter = {
         name: this.name,
@@ -126,7 +134,7 @@ export class Pest {
         },
       };
 
-      const data = await modelYearly.find(filter);
+      const data = await soacYearlyDDModel.find(filter);
       if (data.length === 0) throw new Error('No data found');
 
       this.updateStartDate(data[0].startDate);
@@ -145,7 +153,8 @@ export class Pest {
    * @param changeEnd
    * @returns
    */
-  async storeNewDate(modelYearly: any, changeStart: string | Date | null, changeEnd: string | Date | null) {
+  // async storeNewDate(modelYearly: any, changeStart: string | Date | null, changeEnd: string | Date | null) {
+  async storeNewDate(changeStart: string | Date | null, changeEnd: string | Date | null) {
     try {
       const filter = {
         name: this.name,
@@ -154,18 +163,18 @@ export class Pest {
         },
       };
       if (changeStart != null && changeEnd != null) {
-        await modelYearly.updateMany(filter, {
+        await soacYearlyDDModel.updateMany(filter, {
           $set: { startDate: changeStart, endDate: changeEnd },
         });
         this.updateStartDate(changeStart);
         this.updateEndDate(changeEnd);
       } else if (changeStart != null) {
-        await modelYearly.updateOne(filter, {
+        await soacYearlyDDModel.updateOne(filter, {
           $set: { startDate: changeStart },
         });
         this.updateStartDate(changeStart);
       } else if (changeEnd != null) {
-        await modelYearly.updateOne(filter, { $set: { endDate: changeEnd } });
+        await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
         this.updateEndDate(changeEnd);
       }
     } catch (error) {
@@ -178,10 +187,11 @@ export class Pest {
    * @description Function to record degree day data per day
    * @param tempRunningDDA The degree day data to store
    */
-  async addDDToYearly(name: string, tempRunningDDA: number, modelYearly: any) {
+  // async addDDToYearly(name: string, tempRunningDDA: number, modelYearly: any) {
+  async addDDToYearly(name: string, tempRunningDDA: number) {
     // Push the new degree day data to the database
     try {
-      await modelYearly.updateOne(
+      await soacYearlyDDModel.updateOne(
         {
           name: name,
           startDate: {
@@ -201,21 +211,29 @@ export class Pest {
     }
   }
 
-  async addDDToDaily(name: string, tempDailyDDA: number, modelDaily: any) {
+  /**
+   *
+   * @param name The name of the pest
+   * @param tempDailyDDA The degree day data to store
+   * @param modelDaily The model for the daily DD data
+   */
+  // async addDDToDaily(name: string, tempDailyDDA: number, modelDaily: any) {
+  async addDDToDaily(name: string, tempDailyDDA: number) {
     const dailyInput = {
       name: name,
       date: new Date().toISOString().slice(0, 10),
       degreeDays: tempDailyDDA,
     };
     try {
-      if (!(await modelDaily.findOne(dailyInput))) await modelDaily.updateOne(dailyInput);
+      if (!(await soacDailyDDModel.findOne(dailyInput))) await soacDailyDDModel.updateOne(dailyInput);
     } catch (error) {}
   }
 
   /**
    * @description Function to store the previous days data
    */
-  async storePrevDD(modelDaily: any, modelYearly: any) {
+  // async storePrevDD(modelDaily: any, modelYearly: any) {
+  async storePrevDD() {
     // Previous days data
     const today = new Date();
     const prevDay = today.setDate(today.getDate() - 1);
@@ -230,7 +248,7 @@ export class Pest {
       };
 
       // Get the data from the database
-      const dailyData = await modelDaily.find(filter).exec();
+      const dailyData = await soacDailyDDModel.find(filter).exec();
       if (dailyData.length === 0) throw new Error('No data found');
 
       // calculate previous total
@@ -257,7 +275,7 @@ export class Pest {
           },
         };
 
-        const yearlyData = await modelYearly.find(filter);
+        const yearlyData = await soacYearlyDDModel.find(filter);
         if (yearlyData.length === 0) throw new Error('No data found');
 
         // Update the data in the database
@@ -279,7 +297,8 @@ export class Pest {
    * @param modelTotal The model for the total soac data from sensors
    * @throws Error if there is an error resetting the degree days
    */
-  async massResetYearlyDD(modelYearly: any, modelDaily: any, modelTotal: any) {
+  // async massResetYearlyDD(modelYearly: any, modelDaily: any, modelTotal: any) {
+  async massResetYearlyDD() {
     try {
       const filter = {
         name: this.name,
@@ -287,8 +306,8 @@ export class Pest {
           $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
         },
       };
-      await modelDaily.deleteMany({ name: this.name }); // Reset the daily data for this.name
-      await modelYearly.updateOne(filter, {
+      await soacDailyDDModel.deleteMany({ name: this.name }); // Reset the daily data for this.name
+      await soacYearlyDDModel.updateOne(filter, {
         $set: { totalDegreeDays: 0 },
       }); // Update the yearly data for this.name
       this.updateTotalDegreeDays(0); // Update the total degree days for this.name
@@ -312,7 +331,8 @@ export class Pest {
       // }
 
       // Recalculate the total degree days
-      await this.calculateRunningDegreeDays(modelDaily, modelYearly); // Recalculate the total degree days
+      // await this.calculateRunningDegreeDays(modelDaily, modelYearly); // Recalculate the total degree days
+      await this.calculateRunningDegreeDays(); // Recalculate the total degree days
     } catch (error) {
       console.error('Error occurred in massResetYearlyDD:', error);
       throw new Error('Error occurred in massResetYearlyDD');
@@ -325,8 +345,10 @@ export class Pest {
    * @param date The date to calculate the degree days for
    * @description Function to calculate the daily degree days
    */
-  async calculateDailyDegreeDays(modelTotal: any, date: Date) {
-    this.weatherStats.storeWeatherData(modelTotal, date);
+  // async calculateDailyDegreeDays(modelTotal: any, date: Date) {
+  async calculateDailyDegreeDays(date: Date) {
+    // this.weatherStats.storeWeatherData(modelTotal, date);
+    this.weatherStats.storeWeatherData(date);
     this.tempDayLow = this.weatherStats.getLowTemp();
     this.tempDayHigh = this.weatherStats.getHighTemp();
     // (Low + High)
@@ -335,7 +357,8 @@ export class Pest {
     this.dailyDegreeDays = (this.tempDayLow + this.tempDayHigh) / 2 - this.baseTemp;
     this.dailyDegreeDays = Math.max(this.dailyDegreeDays, 0);
     try {
-      await this.addDDToYearly(this.name, this.dailyDegreeDays, modelTotal);
+      // await this.addDDToYearly(this.name, this.dailyDegreeDays, modelTotal);
+      await this.addDDToYearly(this.name, this.dailyDegreeDays);
     } catch (error) {}
   }
 

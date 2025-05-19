@@ -1,3 +1,6 @@
+import soacDailyDDModel from './SoacDailyDD.js';
+import soacTotalDDModel from './SoacTotalDD.js';
+
 interface WeatherReading {
   time: string;
   temperature?: number;
@@ -39,7 +42,8 @@ export class WeatherStats {
    * @param users The data to store the weather data for
    * @description Function to store the weather data
    */
-  async storeWeatherData(model: any, date?: Date) {
+  // async storeWeatherData(model: any, date?: Date) {
+    async storeWeatherData(date?: Date) {
     let today: Date;
     if (date) today = new Date(date);
     else today = new Date();
@@ -64,7 +68,8 @@ export class WeatherStats {
 
     try {
       // Fetch the data based on the query and projection
-      const results = await model.find(query, projection).exec();
+      // const results = await model.find(query, projection).exec();
+      const results = await soacDailyDDModel.find(query, projection).exec();
 
       // If no results found, throw an error
       if (!results || results.length === 0) {
