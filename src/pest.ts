@@ -215,7 +215,6 @@ export class Pest {
    *
    * @param name The name of the pest
    * @param tempDailyDDA The degree day data to store
-   * @param modelDaily The model for the daily DD data
    */
   // async addDDToDaily(name: string, tempDailyDDA: number, modelDaily: any) {
   async addDDToDaily(name: string, tempDailyDDA: number) {
@@ -292,9 +291,6 @@ export class Pest {
 
   /**
    * @description This function resets the degree days for the current year
-   * @param modelYearly The model for the yearly DD data
-   * @param modelDaily The model for the daily DD data
-   * @param modelTotal The model for the total soac data from sensors
    * @throws Error if there is an error resetting the degree days
    */
   // async massResetYearlyDD(modelYearly: any, modelDaily: any, modelTotal: any) {
@@ -312,7 +308,13 @@ export class Pest {
       }); // Update the yearly data for this.name
       this.updateTotalDegreeDays(0); // Update the total degree days for this.name
 
-      // Calculate the daily degree days from modelTotal
+      // Calculate the daily degree days from soacTotalDDModel
+      // Recalculate the daily degree days
+      ///// FIX THIS
+      for (let i = 0; i < soacTotalDDModel.length; i++) {
+        // const date = filterTotal[i].date;
+        await this.calculateDailyDegreeDays(new Date()); // Calculate the daily degree days
+      }
 
       // // Get the total daily data
       // const filterTotal = await modelTotal.find({
@@ -341,7 +343,6 @@ export class Pest {
 
   /**
    *
-   * @param modelTotal The model for the total soac data from sensors
    * @param date The date to calculate the degree days for
    * @description Function to calculate the daily degree days
    */
