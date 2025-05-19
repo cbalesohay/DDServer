@@ -87,7 +87,7 @@ async function sendProcessedData(req: any, res: any) {
     // Get metric data
     for (const name of metricNames) {
       await storedData.metrics[name].getYearData(soacYearlyDDModel);
-      await storedData.metrics[name].calculateTotalDegreeDays(soacDailyDDModel);
+      await storedData.metrics[name].calculateRunningDegreeDays(soacDailyDDModel, soacYearlyDDModel);
     }
     res.json(storedData); // Respond with processed data
   } catch (error) {
