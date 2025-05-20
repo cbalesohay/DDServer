@@ -38,12 +38,6 @@ export class DataProcessor {
                 // Update the current date
                 current.setDate(current.getDate() + 1);
             }
-            const year = new Date(startDate).getFullYear(); // Convert to year
-            // Log the request
-            console.log('------------------------------');
-            console.log('Re-Calculation Made');
-            console.log('Year:       ' + year);
-            console.log('------------------------------');
         }
         catch (error) { }
     }

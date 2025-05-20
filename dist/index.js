@@ -127,6 +127,11 @@ async function resetYearData(req, res) {
     try {
         const dataProcessor = new DataProcessor(12, 222, soacTotalDDModel);
         await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+        // Log the request
+        console.log('------------------------------');
+        console.log('Re-Calculation Made');
+        console.log('Year:       ' + year);
+        console.log('------------------------------');
     }
     catch (error) {
         console.error('Error occurred in resetYearData:', error);
