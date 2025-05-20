@@ -9,6 +9,7 @@ import { createMetricData } from './createMetricData.js';
 import { MetricName } from './createMetricData.js';
 import { metricNames } from './createMetricData.js';
 import { StoredData } from './createMetricData.js';
+import { DataProcessor } from './dataProcessor.js';
 const express = myRequire('express');
 const bodyParser = myRequire('body-parser');
 const MONGODB_URI = process.env.API_KEY;
@@ -76,11 +77,6 @@ app.use((err: any, req: any, res: any, next: any) => {
  */
 async function sendProcessedData(req: any, res: any) {
   try {
-    // Parse request body
-    const specificDate = req.body.date;
-    const dayAfter = new Date(specificDate);
-    dayAfter.setDate(dayAfter.getDate() + 1);
-
     // Get weather data
     // await storedData.weather.storeWeatherData(soacTotalDDModel);
 
@@ -134,20 +130,20 @@ async function setNewDate(req: any, res: any) {
  * 
  * @param req The request object
  * @param res The response object
+ * @description Function to reset the year data for the metric
  */
 async function resetYearData(req: any, res: any) {
-  const year: string | Date = req.body.year;
+  const yearInput: string | Date = req.body.year; // User input year
+  const year = new Date(yearInput).getFullYear(); // Convert to year
+  const startDate = new Date(`${year}-01-01T00:00:00.000Z`); // Start date of the year
+  
+  // Reset the data
   try {
-    // Might be able to use storePrevDD here
-    // Get metric data
-    for (const name of metricNames) {
-      await storedData.metrics[name].massResetYearlyDD();
-    }
-
-    // Log the request
-    console.log('------------------------------');
-    console.log('Recalculation Made');
-    console.log('Year:       ' + year);
-    console.log('------------------------------');
-  } catch (error) {}
+    const dataProcessor = new DataProcessor(12, 222, soacTotalDDModel);
+    await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+  } catch (error) {
+    console.error('Error occurred in resetYearData:', error);
+    res.status(500).json({ message: 'Error occurred in resetYearData' });
+    return;
+  }
 }
