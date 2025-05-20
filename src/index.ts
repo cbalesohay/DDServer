@@ -86,9 +86,7 @@ async function sendProcessedData(req: any, res: any) {
 
     // Get metric data
     for (const name of metricNames) {
-      // await storedData.metrics[name].getYearData(soacYearlyDDModel);
       await storedData.metrics[name].getYearData();
-      // await storedData.metrics[name].calculateRunningDegreeDays(soacDailyDDModel, soacYearlyDDModel);
       await storedData.metrics[name].calculateRunningDegreeDays();
     }
     res.json(storedData); // Respond with processed data
@@ -111,7 +109,6 @@ async function setNewDate(req: any, res: any) {
     const newStartDate = req.body.startDate || null;
     const newEndDate = req.body.endDate || null;
 
-    // await storedData.metrics[name].storeNewDate(soacYearlyDDModel, newStartDate, newEndDate);
     await storedData.metrics[name].storeNewDate(newStartDate, newEndDate);
     res.status(200).json({ message: 'Success' });
 
@@ -133,13 +130,17 @@ async function setNewDate(req: any, res: any) {
 //   await storedData.metrics[name].storePrevDD(soacDailyDDModel, soacYearlyDDModel);
 // }
 
+/**
+ * 
+ * @param req The request object
+ * @param res The response object
+ */
 async function resetYearData(req: any, res: any) {
   const year: string | Date = req.body.year;
   try {
     // Might be able to use storePrevDD here
     // Get metric data
     for (const name of metricNames) {
-      // await storedData.metrics[name].massResetYearlyDD(soacYearlyDDModel, soacDailyDDModel, soacTotalDDModel);
       await storedData.metrics[name].massResetYearlyDD();
     }
 
