@@ -1,9 +1,11 @@
 const myRequire = createRequire(import.meta.url);
 myRequire('dotenv').config();
 import { createRequire } from 'module';
+import soacTotalDDModel from './SoacTotalDD.js';
 import { WeatherStats } from './weatherStats.js';
 import { createMetricData } from './createMetricData.js';
 import { metricNames } from './createMetricData.js';
+import { DataProcessor } from './dataProcessor.js';
 const express = myRequire('express');
 const bodyParser = myRequire('body-parser');
 const MONGODB_URI = process.env.API_KEY;
@@ -64,10 +66,6 @@ app.use((err, req, res, next) => {
  */
 async function sendProcessedData(req, res) {
     try {
-        // Parse request body
-        const specificDate = req.body.date;
-        const dayAfter = new Date(specificDate);
-        dayAfter.setDate(dayAfter.getDate() + 1);
         // Get weather data
         // await storedData.weather.storeWeatherData(soacTotalDDModel);
         // Get metric data
@@ -119,20 +117,20 @@ async function setNewDate(req, res) {
  *
  * @param req The request object
  * @param res The response object
+ * @description Function to reset the year data for the metric
  */
 async function resetYearData(req, res) {
-    const year = req.body.year;
+    const yearInput = req.body.year; // User input year
+    const year = new Date(yearInput).getFullYear(); // Convert to year
+    const startDate = new Date(`${year}-01-01T00:00:00.000Z`); // Start date of the year
+    // Reset the data
     try {
-        // Might be able to use storePrevDD here
-        // Get metric data
-        for (const name of metricNames) {
-            await storedData.metrics[name].massResetYearlyDD();
-        }
-        // Log the request
-        console.log('------------------------------');
-        console.log('Recalculation Made');
-        console.log('Year:       ' + year);
-        console.log('------------------------------');
+        const dataProcessor = new DataProcessor(12, 222, soacTotalDDModel);
+        await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
     }
-    catch (error) { }
+    catch (error) {
+        console.error('Error occurred in resetYearData:', error);
+        res.status(500).json({ message: 'Error occurred in resetYearData' });
+        return;
+    }
 }

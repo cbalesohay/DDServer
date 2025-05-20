@@ -1,7 +1,6 @@
 import { WeatherStats } from './weatherStats.js';
 import soacDailyDDModel from './SoacDailyDD.js';
 import soacYearlyDDModel from './SoacYearlyDD.js';
-import soacTotalDDModel from './SoacTotalDD.js';
 /**
  * @description Class to represent a pest
  */
@@ -256,7 +255,7 @@ export class Pest {
      * @description This function resets the degree days for the current year
      * @throws Error if there is an error resetting the degree days
      */
-    async massResetYearlyDD() {
+    async massResetYearlyDD(soacTotalDD, date) {
         try {
             const filter = {
                 name: this.name,
@@ -269,28 +268,12 @@ export class Pest {
                 $set: { totalDegreeDays: 0 },
             }); // Update the yearly data for this.name
             this.updateTotalDegreeDays(0); // Update the total degree days for this.name
-            // Construct the query to filter data based on specificDate
-            const query = {
-                device: 12,
-                id: 222,
-                time: {
-                    $gte: new Date(`${this.currentYear}-01-01`).toISOString(),
-                    $lt: new Date(`${this.currentYear}-01-02`).toISOString(),
-                },
-            };
-            // Fetch soacTotalDD and error handling
-            const soacTotalDD = await soacTotalDDModel.find(query).exec();
-            if (!soacTotalDD || soacTotalDD.length === 0)
-                throw new Error('No data found');
             // Calculate the daily degree days from soacTotalDDModel of current year
             for (let i = 0; i < soacTotalDD.length; i++) {
-                const date = new Date(`${this.currentYear}-01-01`);
-                date.setDate(date.getDate() + i);
                 await this.weatherStats.storeWeatherData(date); // Store the weather data
                 await this.calculateDailyDegreeDays(date); // Calculate the daily degree days
             }
-            // Recalculate the total degree days
-            await this.calculateRunningDegreeDays(); // Recalculate the total degree days
+            await this.calculateRunningDegreeDays(); // Recalculate the running degree days
         }
         catch (error) {
             console.error('Error occurred in massResetYearlyDD:', error);
