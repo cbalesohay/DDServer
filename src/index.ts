@@ -1,21 +1,21 @@
 const myRequire = createRequire(import.meta.url);
-myRequire("dotenv").config();
-import { createRequire } from "module";
-import soacDailyDDModel from "./SoacDailyDD.js";
-import soacYearlyDDModel from "./SoacYearlyDD.js";
-import soacTotalDDModel from "./SoacTotalDD.js";
-import { WeatherStats } from "./weatherStats.js";
-import { createMetricData } from "./createMetricData.js";
-import { MetricName } from "./createMetricData.js";
-import { metricNames } from "./createMetricData.js";
-import { StoredData } from "./createMetricData.js";
-const express = myRequire("express");
-const bodyParser = myRequire("body-parser");
+myRequire('dotenv').config();
+import { createRequire } from 'module';
+import soacDailyDDModel from './SoacDailyDD.js';
+import soacYearlyDDModel from './SoacYearlyDD.js';
+import soacTotalDDModel from './SoacTotalDD.js';
+import { WeatherStats } from './weatherStats.js';
+import { createMetricData } from './createMetricData.js';
+import { MetricName } from './createMetricData.js';
+import { metricNames } from './createMetricData.js';
+import { StoredData } from './createMetricData.js';
+const express = myRequire('express');
+const bodyParser = myRequire('body-parser');
 const MONGODB_URI = process.env.API_KEY;
 const MONGODB_URI_DD = process.env.DD_API_KEY;
-const mongoose = myRequire("mongoose");
+const mongoose = myRequire('mongoose');
 const app = express();
-var cors = myRequire("cors");
+var cors = myRequire('cors');
 app.use(cors());
 const PORT = process.env.PORT || 4000;
 export default app;
@@ -35,8 +35,8 @@ const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
 // Connection to Chris test database
 mongoose
   .connect(MONGODB_URI_DD)
-  .then(() => console.log("Connected to MongoDB PERSONAL"))
-  .catch((err: any) => console.error("MongoDB connection error:", err));
+  .then(() => console.log('Connected to MongoDB PERSONAL'))
+  .catch((err: any) => console.error('MongoDB connection error:', err));
 
 // Connection to SOAC test database
 // mongoose
@@ -50,17 +50,18 @@ app.use(express.json());
 app.listen(PORT, () => {
   console.log(`Server running on EC2 port ${PORT}`);
 });
-app.post("/sendData", asyncHandler(sendProcessedData)); // Sends most updated data
-app.post("/newDate", asyncHandler(setNewDate)); // Sets new date for the metric
-app.get("/health", (req: any, res: any) => {
-  res.status(200).send("OK"); // Health check route
+app.post('/sendData', asyncHandler(sendProcessedData)); // Sends most updated data
+app.post('/newDate', asyncHandler(setNewDate)); // Sets new date for the metric
+app.post('/reCalcData', asyncHandler(resetYearData)); // Resets the year data for the metric
+app.get('/health', (req: any, res: any) => {
+  res.status(200).send('OK'); // Health check route
 });
 // Error-handling middleware
 app.use((err: any, req: any, res: any, next: any) => {
-  console.error("Error occurred:", err.message);
+  console.error('Error occurred:', err.message);
   res.status(err.status || 500).json({
     error: {
-      message: err.message || "Internal Server Error",
+      message: err.message || 'Internal Server Error',
     },
   });
 });
@@ -85,12 +86,12 @@ async function sendProcessedData(req: any, res: any) {
 
     // Get metric data
     for (const name of metricNames) {
-      await storedData.metrics[name].getYearData(soacYearlyDDModel);
-      await storedData.metrics[name].calculateTotalDegreeDays(soacDailyDDModel);
+      await storedData.metrics[name].getYearData();
+      await storedData.metrics[name].calculateRunningDegreeDays();
     }
     res.json(storedData); // Respond with processed data
   } catch (error) {
-    throw new Error("Error occurred in sendProcessedData");
+    throw new Error('Error occurred in sendProcessedData');
   }
 }
 
@@ -108,19 +109,19 @@ async function setNewDate(req: any, res: any) {
     const newStartDate = req.body.startDate || null;
     const newEndDate = req.body.endDate || null;
 
-    await storedData.metrics[name].storeNewDate(soacYearlyDDModel, newStartDate, newEndDate);
-    res.status(200).json({ message: "Success" });
+    await storedData.metrics[name].storeNewDate(newStartDate, newEndDate);
+    res.status(200).json({ message: 'Success' });
 
     // Log the request
-    console.log("------------------------------");
-    console.log("Change Made");
-    console.log("Name:       " + name);
-    if (newStartDate != null) console.log("Start Date: " + newStartDate);
-    if (newEndDate != null) console.log("End Date:   " + newEndDate);
-    console.log("------------------------------");
+    console.log('------------------------------');
+    console.log('Change Made');
+    console.log('Name:       ' + name);
+    if (newStartDate != null) console.log('Start Date: ' + newStartDate);
+    if (newEndDate != null) console.log('End Date:   ' + newEndDate);
+    console.log('------------------------------');
   } catch (error) {
-    res.status(400).json({ message: "Error" });
-    throw new Error("Error setting new date");
+    res.status(400).json({ message: 'Error' });
+    throw new Error('Error setting new date');
   }
 }
 
@@ -128,3 +129,25 @@ async function setNewDate(req: any, res: any) {
 // for (const name of metricNames) {
 //   await storedData.metrics[name].storePrevDD(soacDailyDDModel, soacYearlyDDModel);
 // }
+
+/**
+ * 
+ * @param req The request object
+ * @param res The response object
+ */
+async function resetYearData(req: any, res: any) {
+  const year: string | Date = req.body.year;
+  try {
+    // Might be able to use storePrevDD here
+    // Get metric data
+    for (const name of metricNames) {
+      await storedData.metrics[name].massResetYearlyDD();
+    }
+
+    // Log the request
+    console.log('------------------------------');
+    console.log('Recalculation Made');
+    console.log('Year:       ' + year);
+    console.log('------------------------------');
+  } catch (error) {}
+}

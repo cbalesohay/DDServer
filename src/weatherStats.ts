@@ -1,3 +1,6 @@
+import soacDailyDDModel from './SoacDailyDD.js';
+import soacTotalDDModel from './SoacTotalDD.js';
+
 interface WeatherReading {
   time: string;
   temperature?: number;
@@ -9,24 +12,41 @@ interface WeatherReading {
  * @description Class to store the weather data
  */
 export class WeatherStats {
-  // private dayLow = 1000;
-  // private dayHigh = -1000;
-  private dayLow = 0;
-  private dayHigh = 0;
+  private dayLow = 1000;
+  private dayHigh = -1000;
   private dayAverage = 0;
-  private timeOfLow = "";
-  private timeOfHigh = "";
+  private timeOfLow = '';
+  private timeOfHigh = '';
   private current = 0;
   private totalRainfall = 0;
   private dayRainfall = 0;
 
   /**
    *
+   * @returns The current low temperature
+   */
+  getLowTemp() {
+    return this.dayLow;
+  }
+
+  /**
+   *
+   * @returns The current high temperature
+   */
+  getHighTemp() {
+    return this.dayHigh;
+  }
+
+  /**
+   *
    * @param users The data to store the weather data for
    * @description Function to store the weather data
    */
-  async storeWeatherData(model: any) {
-    const today = new Date();
+  // async storeWeatherData(model: any, date?: Date) {
+    async storeWeatherData(date?: Date) {
+    let today: Date;
+    if (date) today = new Date(date);
+    else today = new Date();
 
     // Construct the query to filter data based on specificDate
     const query = {
@@ -48,11 +68,12 @@ export class WeatherStats {
 
     try {
       // Fetch the data based on the query and projection
-      const results = await model.find(query, projection).exec();
+      // const results = await model.find(query, projection).exec();
+      const results = await soacDailyDDModel.find(query, projection).exec();
 
       // If no results found, throw an error
       if (!results || results.length === 0) {
-        throw new Error("No data found");
+        throw new Error('No data found');
       }
 
       // Sorts the data
@@ -60,8 +81,8 @@ export class WeatherStats {
       this.storeHumidity(results);
       this.storeRain(results);
     } catch (error) {
-      console.error("Error occurred in storeWeatherData:", error);
-      throw new Error("Error occurred in storeWeatherData");
+      console.error('Error occurred in storeWeatherData:', error);
+      throw new Error('Error occurred in storeWeatherData');
     }
   }
 
@@ -71,7 +92,9 @@ export class WeatherStats {
    */
   private storeRain(users: WeatherReading[]) {
     this.totalRainfall = this.millimeterToInchConversion(users[users.length - 1].total_rainfall ?? 0);
-    this.dayRainfall = this.millimeterToInchConversion((users[users.length - 1].total_rainfall ?? 0) - (users[0].total_rainfall ?? 0));
+    this.dayRainfall = this.millimeterToInchConversion(
+      (users[users.length - 1].total_rainfall ?? 0) - (users[0].total_rainfall ?? 0),
+    );
   }
 
   /**
@@ -80,7 +103,7 @@ export class WeatherStats {
    */
   private storeHumidity(users: WeatherReading[]) {
     // Determins average humidity for the day
-    this.sortMetric(users, "humidity"); // humidity
+    this.sortMetric(users, 'humidity'); // humidity
     // Sets Humidity in Percentage
     this.dayAverage = Number(this.dayAverage ?? 0);
   }
@@ -91,7 +114,7 @@ export class WeatherStats {
    */
   private storeTemperature(users: WeatherReading[]) {
     // Determines high and low temp for day
-    this.sortMetric(users, "temperature");
+    this.sortMetric(users, 'temperature');
     // Sets and Converts Celcius to Fahrenheit
     this.dayLow = Number(this.fahrenheitConversion(Number(this.dayLow)));
     this.dayHigh = Number(this.fahrenheitConversion(Number(this.dayHigh)));
