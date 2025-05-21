@@ -1,11 +1,11 @@
-import { createRequire } from "module";
+import { createRequire } from 'module';
 const requires = createRequire(import.meta.url);
-const mongoose = requires("mongoose");
+const mongoose = requires('mongoose');
 const soacDailyDDSchema = new mongoose.Schema({
-    _id: String,
     name: String,
     date: String,
     degreeDays: Number,
-});
-const soacDailyDDModel = mongoose.model("dailyDegreeDays", soacDailyDDSchema, "dailyDegreeDays");
+}, { versionKey: false });
+// const soacDailyDDModel = mongoose.model('dailyDegreeDays', soacDailyDDSchema, 'dailyDegreeDays');
+const soacDailyDDModel = mongoose.model('daily_degree_days', soacDailyDDSchema, 'daily_degree_days');
 export default soacDailyDDModel;

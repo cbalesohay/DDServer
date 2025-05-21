@@ -1,4 +1,7 @@
+import { DataProcessor } from './dataProcessor.js';
 import soacDailyDDModel from './SoacDailyDD.js';
+import soacTotalDDModel from './SoacTotalDD.js';
+import soacYearlyDDModel from './SoacYearlyDD.js';
 /**
  * @description Class to store the weather data
  */
@@ -31,44 +34,21 @@ export class WeatherStats {
      * @description Function to store the weather data
      */
     // async storeWeatherData(model: any, date?: Date) {
-    async storeWeatherData(date) {
-        let today;
-        if (date)
-            today = new Date(date);
-        else
-            today = new Date();
-        // Construct the query to filter data based on specificDate
-        const query = {
-            device: 12,
-            id: 222,
-            time: {
-                $gte: new Date(today).toISOString(),
-                $lt: new Date(today.setDate(today.getDate() + 1)).toISOString(),
-            },
-        };
-        // Specify the fields to return in the projection (rainfall, humidity, temperature)
-        const projection = {
-            total_rainfall: 1,
-            humidity: 1,
-            temperature: 1,
-            _id: 0, // Exclude the _id field
-        };
+    async storeWeatherData(date = new Date()) {
         try {
-            // Fetch the data based on the query and projection
-            // const results = await model.find(query, projection).exec();
-            const results = await soacDailyDDModel.find(query, projection).exec();
-            // If no results found, throw an error
-            if (!results || results.length === 0) {
-                throw new Error('No data found');
-            }
+            // Fetches the data from the database
+            const data = new DataProcessor(12, 171, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
+            const results = await data.fetchWeatherSaocData(date);
+            if (results.length === 0)
+                throw new Error('No weather data found');
             // Sorts the data
             this.storeTemperature(results);
             this.storeHumidity(results);
             this.storeRain(results);
         }
         catch (error) {
-            console.error('Error occurred in storeWeatherData:', error);
-            throw new Error('Error occurred in storeWeatherData');
+            // console.error('Error occurred in storeWeatherData:', error);
+            throw error;
         }
     }
     /**

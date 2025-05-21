@@ -2,18 +2,27 @@ export class DataProcessor {
     device;
     Id;
     soacTotalDDModel;
-    constructor(device, Id, soacTotalDDModel) {
+    soacDailyDDModel;
+    soacYearlyDDModel;
+    constructor(device, Id, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel) {
         this.device = device;
         this.Id = Id;
         this.soacTotalDDModel = soacTotalDDModel;
+        this.soacDailyDDModel = soacDailyDDModel;
+        this.soacYearlyDDModel = soacYearlyDDModel;
     }
+    /**
+     *
+     * @param startDate The start date of the data to reset
+     * @param metrics The metrics to reset
+     * @description Function to reset the data for the given date range
+     */
     async dataRangeMassReset(startDate, metrics) {
         const today = new Date(); // Current date
         const current = new Date(startDate); // Current date for the loop
-        // Reset the data
         try {
             // Might be able to use storePrevDD here
-            while (current < today) {
+            while (current <= today) {
                 const nextDay = new Date(current);
                 nextDay.setDate(current.getDate() + 1);
                 const query = {
@@ -26,19 +35,83 @@ export class DataProcessor {
                 };
                 // Fetch soacTotalDD and error handling
                 const soacTotalDD = await this.soacTotalDDModel.find(query).exec();
-                if (!soacTotalDD || soacTotalDD.length === 0) {
-                    console.warn('No data found for the given date range');
-                }
-                else {
-                    // Get metric data
-                    for (const name of Object.keys(metrics)) {
-                        await metrics[name].massResetYearlyDD(soacTotalDD, current);
-                    }
+                if (!soacTotalDD || soacTotalDD.length === 0)
+                    throw new Error('No data found for the given date range');
+                // Get metric data
+                for (const name of Object.keys(metrics)) {
+                    await metrics[name].massResetYearlyDD(startDate);
                 }
                 // Update the current date
                 current.setDate(current.getDate() + 1);
+                // Log the request
+                console.log('------------------------------');
+                console.log('Re-Calculation Made');
+                console.log('Year:       ' + startDate.getFullYear());
+                console.log('------------------------------');
             }
         }
+        catch (error) {
+            // console.error('Error occurred in dataRangeMassReset:', error);
+            throw error; // Rethrow the error to be handled by the caller
+        }
+    }
+    /**
+     *
+     * @param name The name of the metric
+     * @param startDate The start date of the data to reset
+     * @description Function to reset the data from the given date range
+     */
+    async zeroOutYearlyData(name, startDate) {
+        try {
+            const filter = {
+                name: name,
+                startDate: {
+                    $gte: new Date(`${startDate.getFullYear()}-01-01`).toISOString().slice(0, 10),
+                },
+            };
+            await this.soacDailyDDModel.deleteMany({ name: name }); // Reset the daily data for this.name
+            await this.soacYearlyDDModel.updateOne(filter, {
+                $set: { totalDegreeDays: 0 },
+            }); // Update the yearly data for this.name
+        }
         catch (error) { }
+    }
+    /**
+     *
+     * @param today The date to fetch data for
+     * @returns The fetched data
+     * @description Function to fetch the total SAOC data for the given date
+     */
+    async fetchWeatherSaocData(today) {
+        const query = {
+            device: 12,
+            id: 171,
+            time: {
+                $gte: new Date(today).toISOString(),
+                $lt: new Date(today.setDate(today.getDate() + 1)).toISOString(),
+            },
+        };
+        // Specify the fields to return in the projection (rainfall, humidity, temperature)
+        const projection = {
+            total_rainfall: 1,
+            humidity: 1,
+            temperature: 1,
+            _id: 0, // Exclude the _id field
+        };
+        try {
+            // Fetch the data based on the query and projection
+            // const results = await model.find(query, projection).exec();
+            const results = await this.soacTotalDDModel.find(query, projection).exec();
+            // If no results found, throw an error
+            // if (!results || results.length === 0) {
+            if (results.length === 0) {
+                throw new Error('No data found in results');
+            }
+            return results;
+        }
+        catch (error) {
+            // console.error('Error occurred in fetchTotalSaocData:', error);
+            throw error; // Rethrow the error to be handled by the caller
+        }
     }
 }

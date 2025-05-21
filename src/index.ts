@@ -34,16 +34,16 @@ const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
 // https://stackoverflow.com/questions/76358813/how-can-i-connect-two-different-mongodb-clusters-to-my-express-js-backend-using
 
 // Connection to Chris test database
-mongoose
-  .connect(MONGODB_URI_DD)
-  .then(() => console.log('Connected to MongoDB PERSONAL'))
-  .catch((err: any) => console.error('MongoDB connection error:', err));
+// mongoose
+//   .connect(MONGODB_URI_DD)
+//   .then(() => console.log('Connected to MongoDB PERSONAL'))
+//   .catch((err: any) => console.error('MongoDB connection error:', err));
 
 // Connection to SOAC test database
-// mongoose
-//   .connect(MONGODB_URI)
-//   .then(() => console.log("Connected to MongoDB"))
-//   .catch((err: any) => console.error("MongoDB connection error:", err));
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => console.log('Connected to SOAC MongoDB'))
+  .catch((err: any) => console.error('MongoDB connection error:', err));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -75,19 +75,25 @@ app.use((err: any, req: any, res: any, next: any) => {
  * @description Function to get the processed data
  * @throws Error if there is an error getting the processed data
  */
+// async function sendProcessedData(req: any, res: any) {
 async function sendProcessedData(req: any, res: any) {
   try {
     // Get weather data
-    // await storedData.weather.storeWeatherData(soacTotalDDModel);
+    await storedData.weather.storeWeatherData();
 
     // Get metric data
     for (const name of metricNames) {
       await storedData.metrics[name].getYearData();
       await storedData.metrics[name].calculateRunningDegreeDays();
     }
-    res.json(storedData); // Respond with processed data
+
+    res.status(200).json({
+      message: 'Success',
+      data: storedData,
+    });
   } catch (error) {
-    throw new Error('Error occurred in sendProcessedData');
+    console.error('Error occurred in sendProcessedData:', error);
+    res.status(500).json({ message: 'Error' });
   }
 }
 
@@ -116,8 +122,8 @@ async function setNewDate(req: any, res: any) {
     if (newEndDate != null) console.log('End Date:   ' + newEndDate);
     console.log('------------------------------');
   } catch (error) {
-    res.status(400).json({ message: 'Error' });
-    throw new Error('Error setting new date');
+    console.error('Error occurred in setNewDate:', error);
+    res.status(500).json({ message: 'Error' });
   }
 }
 
@@ -127,29 +133,31 @@ async function setNewDate(req: any, res: any) {
 // }
 
 /**
- * 
+ *
  * @param req The request object
  * @param res The response object
  * @description Function to reset the year data for the metric
  */
 async function resetYearData(req: any, res: any) {
-  const yearInput: string | Date = req.body.year; // User input year
-  const year = new Date(yearInput).getFullYear(); // Convert to year
-  const startDate = new Date(`${year}-01-01T00:00:00.000Z`); // Start date of the year
-  
+  const year = parseInt(req.body.year, 10);
+  const startDate = new Date(`${year}-01-01`);
+
   // Reset the data
   try {
-    const dataProcessor = new DataProcessor(12, 222, soacTotalDDModel);
-    await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+    // Instantiate the DataProcessor class
+    const dataProcessor = new DataProcessor(12, 171, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
 
-    // Log the request
-    console.log('------------------------------');
-    console.log('Re-Calculation Made');
-    console.log('Year:       ' + year);
-    console.log('------------------------------');
+    // Reset the data for each metric
+    for (const name of metricNames) {
+      const zeroOut = await dataProcessor.zeroOutYearlyData(storedData.metrics[name].name, startDate);
+      storedData.metrics[name].resetDailyDegreeDays();
+    }
+
+    // Reset the data for the specified date range & recalculate
+    const reset = await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+    res.status(200).json({ message: 'Success' });
   } catch (error) {
     console.error('Error occurred in resetYearData:', error);
     res.status(500).json({ message: 'Error occurred in resetYearData' });
-    return;
   }
 }
