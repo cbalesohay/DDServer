@@ -1,3 +1,4 @@
+import { WeatherStats } from './weatherStats.js';
 export class DataProcessor {
     device;
     Id;
@@ -22,50 +23,40 @@ export class DataProcessor {
         today.setHours(0, 0, 0, 0); // Set time to midnight
         let current = new Date(startDate); // Current date for the loop
         current.setHours(0, 0, 0, 0); // Set time to midnight
-        try {
-            // Might be able to use storePrevDD here
-            while (current <= today) {
-                console.log('Current:', current.toISOString());
-                console.log('Today  :', today.toISOString());
-                const nextDay = new Date(current.getTime());
-                nextDay.setDate(nextDay.getDate() + 1);
-                nextDay.setHours(0, 0, 0, 0); // Set time to midnight
-                const query = {
-                    device: this.device,
-                    id: this.Id,
-                    time: {
-                        $gte: current.toISOString(),
-                        $lt: nextDay.toISOString(),
-                    },
-                };
-                // Fetch soacTotalDD and error handling
-                const soacTotalDD = await this.soacTotalDDModel.find(query).exec();
-                // if (!soacTotalDD || soacTotalDD.length === 0) throw new Error('No data found for the given date range');
-                // Get metric data
-                // for (const name of Object.keys(metrics)) {
-                //   await metrics[name].calculateDailyDegreeDays(current);
-                // }
-                for (const name of Object.keys(metrics)) {
+        const weatherStats = new WeatherStats(); // Create an instance of WeatherStats
+        // Might be able to use storePrevDD here
+        while (current <= today) {
+            console.log('Current:', current.toISOString());
+            console.log('Today  :', today.toISOString());
+            const nextDay = new Date(current.getTime());
+            nextDay.setDate(nextDay.getDate() + 1);
+            nextDay.setHours(0, 0, 0, 0); // Set time to midnight
+            try {
+                await weatherStats.storeWeatherData(new Date(current)); // Store the weather data
+            }
+            catch (error) {
+                console.error('Error occurred in calculateDailyDegreeDays:', error);
+                throw error; // Rethrow the error to be handled by the caller
+            }
+            // Get metric data
+            for (const name of Object.keys(metrics)) {
+                try {
+                    metrics[name].updateTempDayLow(weatherStats.getLowTemp());
+                    metrics[name].updateTempDayHigh(weatherStats.getHighTemp());
                     await metrics[name].calculateDailyDegreeDays(new Date(current));
                 }
-                // Update the current date
-                // current = new Date(current);
-                current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
-                current.setHours(0, 0, 0, 0);
+                catch (error) {
+                    console.error(`Error occurred in dataRangeMassReset for calculateDailyDegreeDays for ${name}:`, error);
+                }
             }
-            // Calculate the running total for each metric
-            for (const name of Object.keys(metrics)) {
-                await metrics[name].calculateRunningDegreeDays();
-            }
-            // Log the request
-            console.log('------------------------------');
-            console.log('Re-Calculation Made');
-            console.log('Year:       ' + startDate.getFullYear());
-            console.log('------------------------------');
+            current = new Date(current.getTime() + 24 * 60 * 60 * 1000); // Move to the next day
+            current.setHours(0, 0, 0, 0); // Set time to midnight
         }
-        catch (error) {
-            throw error; // Rethrow the error to be handled by the caller
-        }
+        // Log the request
+        console.log('------------------------------');
+        console.log('Re-Calculation Made');
+        console.log('Year:       ' + startDate.getFullYear());
+        console.log('------------------------------');
     }
     /**
      *
@@ -74,19 +65,26 @@ export class DataProcessor {
      * @description Function to reset the data from the given date range
      */
     async zeroOutYearlyData(name, startDate) {
+        const filter = {
+            name: name,
+            startDate: {
+                $gte: new Date(`${startDate.getFullYear()}-01-01`).toISOString().slice(0, 10),
+            },
+        };
         try {
-            const filter = {
-                name: name,
-                startDate: {
-                    $gte: new Date(`${startDate.getFullYear()}-01-01`).toISOString().slice(0, 10),
-                },
-            };
             await this.soacDailyDDModel.deleteMany({ name: name }); // Reset the daily data for this.name
+        }
+        catch (error) {
+            console.error('Error occurred in zeroOutYearlyData for deleteMany:', error);
+        }
+        try {
             await this.soacYearlyDDModel.updateOne(filter, {
                 $set: { totalDegreeDays: 0 },
             }); // Update the yearly data for this.name
         }
-        catch (error) { }
+        catch (error) {
+            console.error('Error occurred in zeroOutYearlyData for updateOne:', error);
+        }
     }
     /**
      *

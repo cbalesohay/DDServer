@@ -45,23 +45,22 @@ export class WeatherStats {
    * @description Function to store the weather data
    */
   // async storeWeatherData(model: any, date?: Date) {
-  async storeWeatherData(date = new Date()) {
+  async storeWeatherData(date?: Date) {
+    const dateObj = date ? new Date(date) : new Date();
+    dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
+
+    // Fetches the data from the database
+    const data = new DataProcessor(12, 171, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
     try {
-      // Fetches the data from the database
-      const data = new DataProcessor(12, 171, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
-      const results = await data.fetchWeatherSaocData(date);
-
-      // if (results.length === 0) throw new Error('No weather data found');
-
-      if (results.length !== 0){
+      const results = await data.fetchWeatherSaocData(dateObj);
+      if (results.length !== 0) {
         // Sorts the data
         this.storeTemperature(results);
         this.storeHumidity(results);
         this.storeRain(results);
       }
-
     } catch (error) {
-      throw error;
+      console.error('Error occurred in storeWeatherData:', error);
     }
   }
 

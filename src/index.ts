@@ -78,23 +78,30 @@ app.use((err: any, req: any, res: any, next: any) => {
 // async function sendProcessedData(req: any, res: any) {
 async function sendProcessedData(req: any, res: any) {
   try {
-    // Get weather data
-    await storedData.weather.storeWeatherData();
+    await storedData.weather.storeWeatherData(); // Get weather data
+  } catch (error) {
+    console.error('Error occurred in sendProcessedData for storeWeatherData:', error);
+  }
 
-    // Get metric data
-    for (const name of metricNames) {
+  // Get metric data
+  for (const name of metricNames) {
+    try {
       await storedData.metrics[name].getYearData();
-      await storedData.metrics[name].calculateRunningDegreeDays();
+    } catch (error) {
+      console.error(`Error occurred in sendProcessedData for getYearData for ${name}:`, error);
     }
 
-    res.status(200).json({
-      message: 'Success',
-      data: storedData,
-    });
-  } catch (error) {
-    console.error('Error occurred in sendProcessedData:', error);
-    res.status(500).json({ message: 'Error' });
+    try {
+      await storedData.metrics[name].calculateRunningDegreeDays();
+    } catch (error) {
+      console.error(`Error occurred in sendProcessedData for calculateRunningDegreeDays for ${name}:`, error);
+    }
   }
+
+  res.status(200).json({
+    message: 'Success',
+    data: storedData,
+  });
 }
 
 /**
@@ -152,12 +159,33 @@ async function resetYearData(req: any, res: any) {
 
     // Reset the data for each metric
     for (const name of metricNames) {
-      await dataProcessor.zeroOutYearlyData(storedData.metrics[name].name, startDate);
+      try {
+        await dataProcessor.zeroOutYearlyData(storedData.metrics[name].name, startDate);
+      } catch (error) {
+        console.error(`Error occurred in resetYearData for zeroOutYearlyData for ${name}:`, error);
+      }
       storedData.metrics[name].resetDailyDegreeDays();
     }
 
     // Reset the data for the specified date range & recalculate
-    await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+    try {
+      await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+    } catch (error) {
+      console.error('Error occurred in resetYearData for dataRangeMassReset:', error);
+    }
+
+    for (const name of metricNames) {
+      try {
+        await storedData.metrics[name].getYearData();
+      } catch (error) {
+        console.error(`Error occurred in resetYearData for calculateRunningDegreeDays for ${name}:`, error);
+      }
+      try {
+        await storedData.metrics[name].calculateRunningDegreeDays();
+      } catch (error) {
+        console.error(`Error occurred in resetYearData for calculateRunningDegreeDays for ${name}:`, error);
+      }
+    }
     res.status(200).json({ message: 'Success' });
   } catch (error) {
     console.error('Error occurred in resetYearData:', error);

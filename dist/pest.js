@@ -1,4 +1,3 @@
-import { WeatherStats } from './weatherStats.js';
 import soacDailyDDModel from './SoacDailyDD.js';
 import soacYearlyDDModel from './SoacYearlyDD.js';
 /**
@@ -12,13 +11,10 @@ export class Pest {
     thresholds;
     dailyDegreeDays = 0;
     totalDegreeDays = 0;
-    // private startDate: string | Date = `${this.currentYear}-01-01`;
-    // private endDate: string | Date = `${this.currentYear}-12-31`;
     startDate = new Date(this.currentYear ?? new Date().getFullYear(), 0, 1);
     endDate = new Date(this.currentYear ?? new Date().getFullYear(), 11, 31);
     tempDayLow = 0;
     tempDayHigh = 0;
-    weatherStats = new WeatherStats();
     constructor(name, base) {
         this.name = name;
         this.baseTemp = base;
@@ -36,6 +32,12 @@ export class Pest {
     }
     updateEndDate(date) {
         this.endDate = date;
+    }
+    updateTempDayLow(temp) {
+        this.tempDayLow = temp;
+    }
+    updateTempDayHigh(temp) {
+        this.tempDayHigh = temp;
     }
     resetDailyDegreeDays() {
         this.dailyDegreeDays = 0;
@@ -57,16 +59,16 @@ export class Pest {
      * @returns The year data from the database
      */
     async getYearData() {
+        const dateObj = new Date(this.currentYear, 0, 1);
+        dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
+        const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+        const filter = {
+            name: this.name,
+            startDate: {
+                $gte: formattedDate,
+            },
+        };
         try {
-            const dateObj = new Date(this.currentYear, 0, 1);
-            dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
-            const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
-            const filter = {
-                name: this.name,
-                startDate: {
-                    $gte: formattedDate,
-                },
-            };
             const data = await soacYearlyDDModel.find(filter);
             if (data.length === 0)
                 throw new Error('No data found');
@@ -86,50 +88,65 @@ export class Pest {
      * @returns
      */
     async storeNewDate(changeStart, changeEnd) {
+        const dateObj = new Date(this.currentYear, 0, 1);
+        dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
+        const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+        const filter = {
+            name: this.name,
+            startDate: {
+                $gte: formattedDate,
+            },
+        };
         try {
-            const dateObj = new Date(this.currentYear, 0, 1);
-            dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
-            const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
-            const filter = {
-                name: this.name,
-                startDate: {
-                    $gte: formattedDate,
-                },
-            };
             // Creates doc if does not exist
             const exists = await soacYearlyDDModel.find({ name: this.name });
             if (exists.length === 0)
                 await this.addNewYearlyDataPoint();
-            if (changeStart != null && changeEnd != null) {
-                await soacYearlyDDModel.updateMany(filter, {
-                    $set: { startDate: changeStart, endDate: changeEnd },
-                });
-                this.updateStartDate(changeStart);
-                this.updateEndDate(changeEnd);
-            }
-            else if (changeStart != null) {
-                await soacYearlyDDModel.updateOne(filter, {
-                    $set: { startDate: changeStart },
-                });
-                this.updateStartDate(changeStart);
-            }
-            else if (changeEnd != null) {
-                await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
-                this.updateEndDate(changeEnd);
-            }
         }
         catch (error) {
             throw error;
+        }
+        if (changeStart != null && changeEnd != null) {
+            try {
+                await soacYearlyDDModel.updateMany(filter, {
+                    $set: { startDate: changeStart, endDate: changeEnd },
+                });
+            }
+            catch (error) {
+                console.error('Error occurred in storeNewDate for updateMany:', error);
+            }
+            this.updateStartDate(changeStart);
+            this.updateEndDate(changeEnd);
+        }
+        else if (changeStart != null) {
+            try {
+                await soacYearlyDDModel.updateOne(filter, {
+                    $set: { startDate: changeStart },
+                });
+            }
+            catch (error) {
+                console.error('Error occurred in storeNewDate for updateOne startDate:', error);
+            }
+            this.updateStartDate(changeStart);
+        }
+        else if (changeEnd != null) {
+            try {
+                await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
+            }
+            catch (error) {
+                console.error('Error occurred in storeNewDate for updateOne endDate:', error);
+            }
+            this.updateEndDate(changeEnd);
         }
     }
     /**
      * @description Function to add a new yearly data point
      */
     async addNewYearlyDataPoint() {
+        const dateObj = new Date(this.currentYear, 0, 1);
+        dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
+        const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
         try {
-            const dateObj = new Date(this.currentYear, 0, 1);
-            dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
-            const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
             const doc = await soacYearlyDDModel.insertOne({
                 name: this.name,
                 startDate: this.startDate,
@@ -151,10 +168,10 @@ export class Pest {
      * @description Function to add a new daily data point
      */
     async addNewDailyDataPoint(tempDailyDDA, date) {
+        const dateObj = date ? new Date(date) : new Date();
+        dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
+        const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
         try {
-            const dateObj = date ? new Date(date) : new Date();
-            dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
-            const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
             const doc = await soacDailyDDModel.insertOne({
                 name: this.name,
                 date: formattedDate,
@@ -172,15 +189,20 @@ export class Pest {
      * @param tempRunningDDA The degree day data to store
      */
     async addDDToYearly(name, tempRunningDDA, date) {
-        // Push the new degree day data to the database
+        const dateObj = date ? new Date(date) : new Date();
+        dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
+        const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
         try {
-            const dateObj = date ? new Date(date) : new Date();
-            dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
-            const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
             // Creates doc if does not exist
             const exists = await soacYearlyDDModel.find({ name: this.name });
             if (exists.length === 0)
                 await this.addNewYearlyDataPoint();
+        }
+        catch (error) {
+            console.error('Error occurred in addDDToYearly for existing data:', error);
+        }
+        // Push the new degree day data to the database
+        try {
             await soacYearlyDDModel.updateOne({
                 name: name,
                 startDate: {
@@ -194,7 +216,7 @@ export class Pest {
             });
         }
         catch (error) {
-            throw error;
+            console.error('Error occurred in addDDToYearly for updateOne:', error);
         }
     }
     /**
@@ -217,7 +239,12 @@ export class Pest {
             if (exists.length === 0)
                 await this.addNewDailyDataPoint(tempDailyDDA, date);
             else if (exists[0].degreeDays < tempDailyDDA)
-                await soacDailyDDModel.updateOne(dailyInput, { $set: { degreeDays: tempDailyDDA } });
+                try {
+                    await soacDailyDDModel.updateOne(dailyInput, { $set: { degreeDays: tempDailyDDA } });
+                }
+                catch (error) {
+                    console.error('Error occurred in addDDToDaily for updateOne:', error);
+                }
         }
         catch (error) {
             throw error;
@@ -227,18 +254,17 @@ export class Pest {
      * @description Function to store the previous days data
      */
     async storePrevDD() {
-        // Previous days data
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Set time to midnight
         const prevDay = today.setDate(today.getDate() - 1);
         let prevTotal = -1;
+        // Filter model for specific date
+        const dateString = new Date(prevDay).toISOString().slice(0, 10);
+        const filter = {
+            name: this.name,
+            date: { $gte: dateString },
+        };
         try {
-            // Filter model for specific date
-            const dateString = new Date(prevDay).toISOString().slice(0, 10);
-            const filter = {
-                name: this.name,
-                date: { $gte: dateString },
-            };
             // Get the data from the database
             const dailyData = await soacDailyDDModel.find(filter).exec();
             if (dailyData.length === 0)
@@ -259,40 +285,31 @@ export class Pest {
         }
         else {
             // Store the data in the database
+            const dateString = new Date(this.currentYear, 0, 1).toISOString().slice(0, 10);
+            const filter = {
+                name: this.name,
+                startDate: {
+                    $gte: dateString,
+                },
+            };
             try {
-                const dateString = new Date(this.currentYear, 0, 1).toISOString().slice(0, 10);
-                const filter = {
-                    name: this.name,
-                    startDate: {
-                        $gte: dateString,
-                    },
-                };
                 const yearlyData = await soacYearlyDDModel.find(filter);
                 if (yearlyData.length === 0)
                     throw new Error('No data found');
-                // Update the data in the database
-                yearlyData.updateOne({
-                    name: this.name,
-                    totalDegreeDays: prevTotal,
-                });
+                try {
+                    // Update the data in the database
+                    yearlyData.updateOne({
+                        name: this.name,
+                        totalDegreeDays: prevTotal,
+                    });
+                }
+                catch (error) {
+                    console.error('Error occurred in storePrevDD for updateOne:', error);
+                }
             }
             catch (error) {
                 throw error;
             }
-        }
-    }
-    /**
-     * @description This function resets the degree days for the current year
-     * @throws Error if there is an error resetting the degree days
-     */
-    async massResetYearlyDD(date) {
-        try {
-            // await this.weatherStats.storeWeatherData(date); // Store the weather data
-            await this.calculateDailyDegreeDays(date); // Calculate the daily degree days
-            // await this.calculateRunningDegreeDays(); // Recalculate the running degree days
-        }
-        catch (error) {
-            throw error; // Rethrow the error to be handled by the caller
         }
     }
     /**
@@ -310,11 +327,11 @@ export class Pest {
         let foundToday = false;
         let tempTotalDegreeDays = 0;
         // Get Daily data here
+        const filter = {
+            name: this.name,
+            date: { $gte: this.startDate },
+        };
         try {
-            const filter = {
-                name: this.name,
-                date: { $gte: this.startDate },
-            };
             const dailyData = await soacDailyDDModel.find(filter).exec();
             // if (dailyData.length === 0) throw new Error('No data found');
             if (dailyData.length !== 0) {
@@ -331,7 +348,12 @@ export class Pest {
                 if (!foundToday)
                     this.resetDailyDegreeDays();
                 if (this.getTotalDegreeDays() < tempTotalDegreeDays || this.getTotalDegreeDays() !== tempTotalDegreeDays) {
-                    await this.addDDToYearly(this.name, tempTotalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
+                    try {
+                        await this.addDDToYearly(this.name, tempTotalDegreeDays); // Assign tempRunningDDA to the totalDegreeDays
+                    }
+                    catch (error) {
+                        console.error('Error occurred in calculateRunningDegreeDays for addDDToYearly:', error);
+                    }
                 }
                 // Store the data
                 this.updateTotalDegreeDays(tempTotalDegreeDays);
@@ -353,23 +375,19 @@ export class Pest {
         const normalizedDate = date ? new Date(date) : new Date(); // Use passed date or current date
         normalizedDate.setHours(0, 0, 0, 0); // Normalize to local midnight
         normalizedDate.toISOString().slice(0, 10);
-        try {
-            await this.weatherStats.storeWeatherData(date); // Store the weather data
-        }
-        catch (error) {
-            console.error('Error occurred in calculateDailyDegreeDays:', error);
-            throw error; // Rethrow the error to be handled by the caller
-        }
-        this.tempDayLow = this.weatherStats.getLowTemp();
-        this.tempDayHigh = this.weatherStats.getHighTemp();
         this.updateDailyDegreeDays(Math.max((this.tempDayLow + this.tempDayHigh) / 2 - this.baseTemp, 0));
         if (this.dailyDegreeDays > 0) {
             try {
                 await this.addDDToDaily(this.name, this.dailyDegreeDays, date); // Add to daily DD
+            }
+            catch (error) {
+                console.error('Error occurred in calculateDailyDegreeDays for addDDToDaily:', error);
+            }
+            try {
                 await this.addDDToYearly(this.name, this.dailyDegreeDays, date); // Add to running DD total
             }
             catch (error) {
-                throw error; // Rethrow the error to be handled by the caller
+                console.error('Error occurred in calculateDailyDegreeDays for addDDToYearly:', error);
             }
         }
     }
