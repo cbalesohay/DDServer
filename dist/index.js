@@ -1,6 +1,8 @@
 const myRequire = createRequire(import.meta.url);
 myRequire('dotenv').config();
 import { createRequire } from 'module';
+import soacDailyDDModel from './SoacDailyDD.js';
+import soacYearlyDDModel from './SoacYearlyDD.js';
 import soacTotalDDModel from './SoacTotalDD.js';
 import { WeatherStats } from './weatherStats.js';
 import { createMetricData } from './createMetricData.js';
@@ -26,22 +28,22 @@ const asyncHandler = (fn) => (req, res, next) => {
 // For reference of connecting two clusters for another day
 // https://stackoverflow.com/questions/76358813/how-can-i-connect-two-different-mongodb-clusters-to-my-express-js-backend-using
 // Connection to Chris test database
-mongoose
-    .connect(MONGODB_URI_DD)
-    .then(() => console.log('Connected to MongoDB PERSONAL'))
-    .catch((err) => console.error('MongoDB connection error:', err));
-// Connection to SOAC test database
 // mongoose
-//   .connect(MONGODB_URI)
-//   .then(() => console.log("Connected to MongoDB"))
-//   .catch((err: any) => console.error("MongoDB connection error:", err));
+//   .connect(MONGODB_URI_DD)
+//   .then(() => console.log('Connected to MongoDB PERSONAL'))
+//   .catch((err: any) => console.error('MongoDB connection error:', err));
+// Connection to SOAC test database
+mongoose
+    .connect(MONGODB_URI)
+    .then(() => console.log('Connected to SOAC MongoDB'))
+    .catch((err) => console.error('MongoDB connection error:', err));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 app.listen(PORT, () => {
     console.log(`Server running on EC2 port ${PORT}`);
 });
-app.post('/sendData', asyncHandler(sendProcessedData)); // Sends most updated data
+app.get('/sendData', asyncHandler(sendProcessedData)); // Sends most updated data
 app.post('/newDate', asyncHandler(setNewDate)); // Sets new date for the metric
 app.post('/reCalcData', asyncHandler(resetYearData)); // Resets the year data for the metric
 app.get('/health', (req, res) => {
@@ -64,20 +66,33 @@ app.use((err, req, res, next) => {
  * @description Function to get the processed data
  * @throws Error if there is an error getting the processed data
  */
+// async function sendProcessedData(req: any, res: any) {
 async function sendProcessedData(req, res) {
     try {
-        // Get weather data
-        // await storedData.weather.storeWeatherData(soacTotalDDModel);
-        // Get metric data
-        for (const name of metricNames) {
-            await storedData.metrics[name].getYearData();
-            await storedData.metrics[name].calculateRunningDegreeDays();
-        }
-        res.json(storedData); // Respond with processed data
+        await storedData.weather.storeWeatherData(); // Get weather data
     }
     catch (error) {
-        throw new Error('Error occurred in sendProcessedData');
+        console.error('Error occurred in sendProcessedData for storeWeatherData:', error);
     }
+    // Get metric data
+    for (const name of metricNames) {
+        try {
+            await storedData.metrics[name].getYearData();
+        }
+        catch (error) {
+            console.error(`Error occurred in sendProcessedData for getYearData for ${name}:`, error);
+        }
+        try {
+            await storedData.metrics[name].calculateRunningDegreeDays();
+        }
+        catch (error) {
+            console.error(`Error occurred in sendProcessedData for calculateRunningDegreeDays for ${name}:`, error);
+        }
+    }
+    res.status(200).json({
+        message: 'Success',
+        data: storedData,
+    });
 }
 /**
  *
@@ -91,7 +106,9 @@ async function setNewDate(req, res) {
     try {
         const name = req.body.name;
         const newStartDate = req.body.startDate || null;
+        newStartDate.setHours(0, 0, 0, 0); // Set time to midnight
         const newEndDate = req.body.endDate || null;
+        newEndDate.setHours(0, 0, 0, 0); // Set time to midnight
         await storedData.metrics[name].storeNewDate(newStartDate, newEndDate);
         res.status(200).json({ message: 'Success' });
         // Log the request
@@ -105,8 +122,8 @@ async function setNewDate(req, res) {
         console.log('------------------------------');
     }
     catch (error) {
-        res.status(400).json({ message: 'Error' });
-        throw new Error('Error setting new date');
+        console.error('Error occurred in setNewDate:', error);
+        res.status(500).json({ message: 'Error' });
     }
 }
 // Call this fucntion every 24 hours at 12:05 am
@@ -120,22 +137,48 @@ async function setNewDate(req, res) {
  * @description Function to reset the year data for the metric
  */
 async function resetYearData(req, res) {
-    const yearInput = req.body.year; // User input year
-    const year = new Date(yearInput).getFullYear(); // Convert to year
-    const startDate = new Date(`${year}-01-01T00:00:00.000Z`); // Start date of the year
+    const year = parseInt(req.body.year, 10);
+    const startDate = new Date(year, 0, 1); // January 1st of the specified year
+    startDate.setHours(0, 0, 0, 0); // Set time to midnight
     // Reset the data
     try {
-        const dataProcessor = new DataProcessor(12, 222, soacTotalDDModel);
-        await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
-        // Log the request
-        console.log('------------------------------');
-        console.log('Re-Calculation Made');
-        console.log('Year:       ' + year);
-        console.log('------------------------------');
+        // Instantiate the DataProcessor class
+        const dataProcessor = new DataProcessor(12, 171, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
+        // Reset the data for each metric
+        for (const name of metricNames) {
+            try {
+                await dataProcessor.zeroOutYearlyData(storedData.metrics[name].name, startDate);
+            }
+            catch (error) {
+                console.error(`Error occurred in resetYearData for zeroOutYearlyData for ${name}:`, error);
+            }
+            storedData.metrics[name].resetDailyDegreeDays();
+        }
+        // Reset the data for the specified date range & recalculate
+        try {
+            await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+        }
+        catch (error) {
+            console.error('Error occurred in resetYearData for dataRangeMassReset:', error);
+        }
+        for (const name of metricNames) {
+            try {
+                await storedData.metrics[name].getYearData();
+            }
+            catch (error) {
+                console.error(`Error occurred in resetYearData for calculateRunningDegreeDays for ${name}:`, error);
+            }
+            try {
+                await storedData.metrics[name].calculateRunningDegreeDays();
+            }
+            catch (error) {
+                console.error(`Error occurred in resetYearData for calculateRunningDegreeDays for ${name}:`, error);
+            }
+        }
+        res.status(200).json({ message: 'Success' });
     }
     catch (error) {
         console.error('Error occurred in resetYearData:', error);
         res.status(500).json({ message: 'Error occurred in resetYearData' });
-        return;
     }
 }
