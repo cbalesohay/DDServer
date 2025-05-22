@@ -141,28 +141,29 @@ export class Pest {
         await soacYearlyDDModel.updateMany(filter, {
           $set: { startDate: changeStart, endDate: changeEnd },
         });
+        this.updateStartDate(changeStart);
+        this.updateEndDate(changeEnd);
       } catch (error) {
         console.error('Error occurred in storeNewDate for updateMany:', error);
       }
-      this.updateStartDate(changeStart);
-      this.updateEndDate(changeEnd);
     } else if (changeStart != null) {
       try {
         await soacYearlyDDModel.updateOne(filter, {
           $set: { startDate: changeStart },
         });
+        this.updateStartDate(changeStart);
       } catch (error) {
         console.error('Error occurred in storeNewDate for updateOne startDate:', error);
       }
-      this.updateStartDate(changeStart);
     } else if (changeEnd != null) {
       try {
         await soacYearlyDDModel.updateOne(filter, { $set: { endDate: changeEnd } });
+        this.updateEndDate(changeEnd);
       } catch (error) {
         console.error('Error occurred in storeNewDate for updateOne endDate:', error);
       }
-      this.updateEndDate(changeEnd);
     }
+    this.calculateRunningDegreeDays();
   }
 
   /**
@@ -363,7 +364,7 @@ export class Pest {
     // Get Daily data here
     const filter = {
       name: this.name,
-      date: { $gte: this.startDate },
+      date: { $gte: this.startDate, $lte: this.endDate },
     };
 
     try {
