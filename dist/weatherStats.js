@@ -112,7 +112,6 @@ export class WeatherStats {
             const value = results[i][metric];
             if (value == null)
                 continue;
-            console.log('value', value);
             if (value > (this.dayHigh ?? 0)) {
                 this.dayHigh = value;
                 this.timeOfHigh = results[i].time;

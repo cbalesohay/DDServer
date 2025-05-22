@@ -106,9 +106,9 @@ async function setNewDate(req, res) {
     try {
         const name = req.body.name;
         const newStartDate = req.body.startDate || null;
-        newStartDate.setHours(0, 0, 0, 0); // Set time to midnight
+        // newStartDate.setHours(0, 0, 0, 0); // Set time to midnight
         const newEndDate = req.body.endDate || null;
-        newEndDate.setHours(0, 0, 0, 0); // Set time to midnight
+        // newEndDate.setHours(0, 0, 0, 0); // Set time to midnight
         await storedData.metrics[name].storeNewDate(newStartDate, newEndDate);
         res.status(200).json({ message: 'Success' });
         // Log the request
