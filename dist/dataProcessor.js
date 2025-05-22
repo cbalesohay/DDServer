@@ -26,8 +26,6 @@ export class DataProcessor {
         const weatherStats = new WeatherStats(); // Create an instance of WeatherStats
         // Might be able to use storePrevDD here
         while (current <= today) {
-            console.log('Current:', current.toISOString());
-            console.log('Today  :', today.toISOString());
             const nextDay = new Date(current.getTime());
             nextDay.setDate(nextDay.getDate() + 1);
             nextDay.setHours(0, 0, 0, 0); // Set time to midnight

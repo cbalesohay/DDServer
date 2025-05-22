@@ -19,7 +19,8 @@ export class WeatherStats {
   private dayAverage = 0;
   private timeOfLow = '';
   private timeOfHigh = '';
-  private current = 0;
+  private currTemp = 0;
+  private currHumidity = 0;
   private totalRainfall = 0;
   private dayRainfall = 0;
 
@@ -80,10 +81,7 @@ export class WeatherStats {
    * @param users The data to store the humidity for
    */
   private storeHumidity(users: WeatherReading[]) {
-    // Determins average humidity for the day
-    this.sortMetric(users, 'humidity'); // humidity
-    // Sets Humidity in Percentage
-    this.dayAverage = Number(this.dayAverage ?? 0);
+    this.currHumidity = users[users.length - 1]['humidity'] ?? 0;
   }
 
   /**
@@ -97,7 +95,7 @@ export class WeatherStats {
     this.dayLow = Number(this.fahrenheitConversion(Number(this.dayLow)));
     this.dayHigh = Number(this.fahrenheitConversion(Number(this.dayHigh)));
     this.dayAverage = Number(this.fahrenheitConversion(Number(this.dayAverage)));
-    this.current = Number(this.fahrenheitConversion(Number(this.current)));
+    this.currTemp = Number(this.fahrenheitConversion(Number(this.currTemp)));
   }
 
   /**
@@ -127,12 +125,14 @@ export class WeatherStats {
     this.dayLow = 1000;
     this.dayHigh = -1000;
     this.dayAverage = 0;
-    this.current = 0;
+    this.currTemp = 0;
     let total = 0;
 
     for (let i = 0; i < results.length; i++) {
       const value = results[i][metric];
       if (value == null) continue;
+
+      console.log('value', value);
 
       if (value > (this.dayHigh ?? 0)) {
         this.dayHigh = value;
@@ -147,7 +147,7 @@ export class WeatherStats {
       total += value;
     }
 
-    this.current = results[results.length - 1][metric];
+    this.currTemp = results[results.length - 1][metric];
     this.dayAverage = total / results.length;
   }
 
@@ -162,7 +162,7 @@ export class WeatherStats {
       dayAverage: this.dayAverage,
       timeOfLow: this.timeOfLow,
       timeOfHigh: this.timeOfHigh,
-      current: this.current,
+      currTemp: this.currTemp,
       totalRainfall: this.totalRainfall,
       dayRainfall: this.dayRainfall,
     };
