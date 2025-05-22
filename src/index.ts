@@ -51,7 +51,7 @@ app.use(express.json());
 app.listen(PORT, () => {
   console.log(`Server running on EC2 port ${PORT}`);
 });
-app.post('/sendData', asyncHandler(sendProcessedData)); // Sends most updated data
+app.get('/sendData', asyncHandler(sendProcessedData)); // Sends most updated data
 app.post('/newDate', asyncHandler(setNewDate)); // Sets new date for the metric
 app.post('/reCalcData', asyncHandler(resetYearData)); // Resets the year data for the metric
 app.get('/health', (req: any, res: any) => {
@@ -109,7 +109,9 @@ async function setNewDate(req: any, res: any) {
   try {
     const name: MetricName = req.body.name as MetricName;
     const newStartDate = req.body.startDate || null;
+    newStartDate.setHours(0, 0, 0, 0); // Set time to midnight
     const newEndDate = req.body.endDate || null;
+    newEndDate.setHours(0, 0, 0, 0); // Set time to midnight
 
     await storedData.metrics[name].storeNewDate(newStartDate, newEndDate);
     res.status(200).json({ message: 'Success' });
@@ -140,7 +142,8 @@ async function setNewDate(req: any, res: any) {
  */
 async function resetYearData(req: any, res: any) {
   const year = parseInt(req.body.year, 10);
-  const startDate = new Date(`${year}-01-01`);
+  const startDate = new Date(year, 0, 1); // January 1st of the specified year
+  startDate.setHours(0, 0, 0, 0); // Set time to midnight
 
   // Reset the data
   try {
@@ -149,12 +152,12 @@ async function resetYearData(req: any, res: any) {
 
     // Reset the data for each metric
     for (const name of metricNames) {
-      const zeroOut = await dataProcessor.zeroOutYearlyData(storedData.metrics[name].name, startDate);
+      await dataProcessor.zeroOutYearlyData(storedData.metrics[name].name, startDate);
       storedData.metrics[name].resetDailyDegreeDays();
     }
 
     // Reset the data for the specified date range & recalculate
-    const reset = await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
+    await dataProcessor.dataRangeMassReset(startDate, storedData.metrics);
     res.status(200).json({ message: 'Success' });
   } catch (error) {
     console.error('Error occurred in resetYearData:', error);

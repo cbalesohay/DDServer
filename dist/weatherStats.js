@@ -39,15 +39,15 @@ export class WeatherStats {
             // Fetches the data from the database
             const data = new DataProcessor(12, 171, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
             const results = await data.fetchWeatherSaocData(date);
-            if (results.length === 0)
-                throw new Error('No weather data found');
-            // Sorts the data
-            this.storeTemperature(results);
-            this.storeHumidity(results);
-            this.storeRain(results);
+            // if (results.length === 0) throw new Error('No weather data found');
+            if (results.length !== 0) {
+                // Sorts the data
+                this.storeTemperature(results);
+                this.storeHumidity(results);
+                this.storeRain(results);
+            }
         }
         catch (error) {
-            // console.error('Error occurred in storeWeatherData:', error);
             throw error;
         }
     }

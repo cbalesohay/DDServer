@@ -15,12 +15,19 @@ export class DataProcessor {
    */
   async dataRangeMassReset(startDate: Date, metrics: Record<string, any>) {
     const today = new Date(); // Current date
-    const current = new Date(startDate); // Current date for the loop
+    today.setHours(0, 0, 0, 0); // Set time to midnight
+
+    let current = new Date(startDate); // Current date for the loop
+    current.setHours(0, 0, 0, 0); // Set time to midnight
     try {
       // Might be able to use storePrevDD here
       while (current <= today) {
-        const nextDay = new Date(current);
-        nextDay.setDate(current.getDate() + 1);
+        console.log('Current:', current.toISOString());
+        console.log('Today  :', today.toISOString());
+
+        const nextDay = new Date(current.getTime());
+        nextDay.setDate(nextDay.getDate() + 1);
+        nextDay.setHours(0, 0, 0, 0); // Set time to midnight
 
         const query = {
           device: this.device,
@@ -33,22 +40,32 @@ export class DataProcessor {
 
         // Fetch soacTotalDD and error handling
         const soacTotalDD = await this.soacTotalDDModel.find(query).exec();
-        if (!soacTotalDD || soacTotalDD.length === 0) throw new Error('No data found for the given date range');
+        // if (!soacTotalDD || soacTotalDD.length === 0) throw new Error('No data found for the given date range');
 
         // Get metric data
+        // for (const name of Object.keys(metrics)) {
+        //   await metrics[name].calculateDailyDegreeDays(current);
+        // }
         for (const name of Object.keys(metrics)) {
-          await metrics[name].massResetYearlyDD(startDate);
+          await metrics[name].calculateDailyDegreeDays(new Date(current));
         }
 
         // Update the current date
-        current.setDate(current.getDate() + 1);
-
-        // Log the request
-        console.log('------------------------------');
-        console.log('Re-Calculation Made');
-        console.log('Year:       ' + startDate.getFullYear());
-        console.log('------------------------------');
+        // current = new Date(current);
+        current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+        current.setHours(0, 0, 0, 0);
       }
+
+      // Calculate the running total for each metric
+      for (const name of Object.keys(metrics)) {
+        await metrics[name].calculateRunningDegreeDays();
+      }
+
+      // Log the request
+      console.log('------------------------------');
+      console.log('Re-Calculation Made');
+      console.log('Year:       ' + startDate.getFullYear());
+      console.log('------------------------------');
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller
     }
@@ -104,9 +121,9 @@ export class DataProcessor {
       const results = await this.soacTotalDDModel.find(query, projection).exec();
 
       // If no results found, throw an error
-      if (results.length === 0) {
-        throw new Error('No data found in results');
-      }
+      // if (results.length === 0) {
+      //   throw new Error('No data found in results');
+      // }
       return results;
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller
