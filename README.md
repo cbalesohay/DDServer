@@ -10,14 +10,45 @@ The back end of this project is written using Typescript. The tought behind maki
 - Node.js
 - Express.js
 - Mongoose
+- Docker
 
-## Run / Build
+## Run / Build / Stop
 
-Process to build and run build for production:
+Process to get server up and running for production:
 
+Install Docker and Docker Compose on your system that will host the server.
+
+Git clone your repo to your machine
 ```
-npm run build
-npm run start
+git clone https://your-github-repo/project
+```
+
+Add .env to project
+```
+cd /your-project-root-dir
+nano .env
+```
+
+In .env add info
+```
+API_URL=yourapiurl
+PORT=portnum
+```
+
+Build and Run commands 
+```
+docker compose build
+docker compose up -d
+```
+
+Check to make sure your container is live and free of errors
+```
+docker compose ps
+```
+
+To stop your server
+```
+docker compose down
 ```
 
 ## Database Integration
@@ -25,11 +56,9 @@ npm run start
 Steps to include your mongoDB connection into this backend:
 
 1. Create a `.env` file in the root directory of the project
-2. After adding your api key to the .env file, add you api key name to `<your-api>` in `process.env.<your-api>` located inside index.ts
+2. After adding your api key to the .env file, if different add your api key name to `<your-api>` in `process.env.<your-api>` located inside index.ts
 3. Modify `SoacDailyDD.ts` and `SoacYearlyDD.ts` schemas to match your specific dataset
-4. `npm run build` to build the project
-5. `npm run dev` to test api connection to mongoDB
-6. Message in console should read "Connected to MongoDB"
+4. Follow Run / Build / Stop instructions above
 
 ## Metric Alter
 
