@@ -24,6 +24,7 @@ export class Pest {
 
   private dailyDegreeDays: number = 0;
   private totalDegreeDays: number = 0;
+  private currDayDDTotal: number = 0;
   private startDate: Date = new Date(this.currentYear ?? new Date().getFullYear(), 0, 1);
   private endDate: Date = new Date(this.currentYear ?? new Date().getFullYear(), 11, 31);
   private tempDayLow: number = 0;
@@ -59,6 +60,10 @@ export class Pest {
 
   updateTempDayHigh(temp: number) {
     this.tempDayHigh = temp;
+  }
+
+  updatecurrDayDDTotal(dd: number) {
+    this.currDayDDTotal = dd;
   }
 
   resetDailyDegreeDays() {
@@ -220,7 +225,7 @@ export class Pest {
     const dateObj = date ? new Date(date) : new Date();
     dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
     const formattedDate = dateObj.toISOString().slice(0, 10); // "YYYY-MM-DD"
-    
+
     try {
       // Creates doc if does not exist
       const exists = await soacYearlyDDModel.find({ name: this.name });
@@ -228,7 +233,7 @@ export class Pest {
     } catch (error) {
       console.error('Error occurred in addDDToYearly for existing data:', error);
     }
-    
+
     // Push the new degree day data to the database
     try {
       await soacYearlyDDModel.updateOne(
@@ -240,7 +245,7 @@ export class Pest {
         },
         {
           $set: {
-            totalDegreeDays: tempRunningDDA,
+            totalDegreeDays: tempRunningDDA - this.currDayDDTotal,
             lastInput: formattedDate,
           },
         },
@@ -269,12 +274,14 @@ export class Pest {
       // Creates doc if does not exist
       const exists = await soacDailyDDModel.find(dailyInput);
       if (exists.length === 0) await this.addNewDailyDataPoint(tempDailyDDA, date);
-      else if (exists[0].degreeDays < tempDailyDDA)
+      else if (exists[0].degreeDays < tempDailyDDA) {
+        this.updatecurrDayDDTotal(exists[0].degreeDays);
         try {
           await soacDailyDDModel.updateOne(dailyInput, { $set: { degreeDays: tempDailyDDA } });
         } catch (error) {
           console.error('Error occurred in addDDToDaily for updateOne:', error);
         }
+      }
     } catch (error) {
       throw error;
     }

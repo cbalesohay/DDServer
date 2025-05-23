@@ -11,6 +11,7 @@ export class Pest {
     thresholds;
     dailyDegreeDays = 0;
     totalDegreeDays = 0;
+    currDayDDTotal = 0;
     startDate = new Date(this.currentYear ?? new Date().getFullYear(), 0, 1);
     endDate = new Date(this.currentYear ?? new Date().getFullYear(), 11, 31);
     tempDayLow = 0;
@@ -38,6 +39,9 @@ export class Pest {
     }
     updateTempDayHigh(temp) {
         this.tempDayHigh = temp;
+    }
+    updatecurrDayDDTotal(dd) {
+        this.currDayDDTotal = dd;
     }
     resetDailyDegreeDays() {
         this.dailyDegreeDays = 0;
@@ -210,7 +214,7 @@ export class Pest {
                 },
             }, {
                 $set: {
-                    totalDegreeDays: tempRunningDDA,
+                    totalDegreeDays: tempRunningDDA - this.currDayDDTotal,
                     lastInput: formattedDate,
                 },
             });
@@ -238,13 +242,15 @@ export class Pest {
             const exists = await soacDailyDDModel.find(dailyInput);
             if (exists.length === 0)
                 await this.addNewDailyDataPoint(tempDailyDDA, date);
-            else if (exists[0].degreeDays < tempDailyDDA)
+            else if (exists[0].degreeDays < tempDailyDDA) {
+                this.updatecurrDayDDTotal(exists[0].degreeDays);
                 try {
                     await soacDailyDDModel.updateOne(dailyInput, { $set: { degreeDays: tempDailyDDA } });
                 }
                 catch (error) {
                     console.error('Error occurred in addDDToDaily for updateOne:', error);
                 }
+            }
         }
         catch (error) {
             throw error;
