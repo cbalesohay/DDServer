@@ -92,6 +92,8 @@ async function sendProcessedData(req: any, res: any) {
     }
 
     try {
+      storedData.metrics[name].updateTempDayLow(storedData.weather.getLowTemp());
+      storedData.metrics[name].updateTempDayHigh(storedData.weather.getHighTemp());
       await storedData.metrics[name].calculateRunningDegreeDays();
     } catch (error) {
       console.error(`Error occurred in sendProcessedData for calculateRunningDegreeDays for ${name}:`, error);
