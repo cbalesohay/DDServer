@@ -231,29 +231,28 @@ export class Pest {
       // Creates doc if does not exist
       const exists = await soacYearlyDDModel.find({ name: this.name });
       if (exists.length === 0) await this.addNewYearlyDataPoint();
-      else if (exists[0].totalDegreeDays < tempRunningDDA) {
-        // Push the new degree day data to the database
-        try {
-          await soacYearlyDDModel.updateOne(
-            {
-              name: name,
-              startDate: {
-                $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
-              },
-            },
-            {
-              $set: {
-                totalDegreeDays: tempRunningDDA - this.currDayDDTotal,
-                lastInput: formattedDate,
-              },
-            },
-          );
-        } catch (error) {
-          console.error('Error occurred in addDDToYearly for updateOne:', error);
-        }
-      }
     } catch (error) {
       console.error('Error occurred in addDDToYearly for existing data:', error);
+    }
+
+    // Push the new degree day data to the database
+    try {
+      await soacYearlyDDModel.updateOne(
+        {
+          name: name,
+          startDate: {
+            $gte: new Date(`${this.currentYear}-01-01`).toISOString().slice(0, 10),
+          },
+        },
+        {
+          $set: {
+            totalDegreeDays: tempRunningDDA - this.currDayDDTotal,
+            lastInput: formattedDate,
+          },
+        },
+      );
+    } catch (error) {
+      console.error('Error occurred in addDDToYearly for updateOne:', error);
     }
   }
 
@@ -387,7 +386,6 @@ export class Pest {
           // Fix the if. It is defaulting to reset
           // if (dailyData[i].date == today) {
           if (dailyData[i].date == localDateString) {
-            this.addDDToDaily(this.name, dailyData[i].degreeDays, today); // Add to daily DD
             this.updateDailyDegreeDays(dailyData[i].degreeDays);
             foundToday = true;
           }
