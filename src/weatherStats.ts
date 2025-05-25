@@ -14,8 +14,8 @@ interface WeatherReading {
  * @description Class to store the weather data
  */
 export class WeatherStats {
-  private dayLow = 1000;
-  private dayHigh = -1000;
+  private dayLow = Number.POSITIVE_INFINITY;
+  private dayHigh = Number.NEGATIVE_INFINITY;
   private dayAverage = 0;
   private timeOfLow = '';
   private timeOfHigh = '';
@@ -146,7 +146,7 @@ export class WeatherStats {
     }
 
     this.currTemp = results[results.length - 1][metric];
-    this.dayAverage = total / results.length;
+    if (results.length !== 0) this.dayAverage = total / results.length;
   }
 
   /**
