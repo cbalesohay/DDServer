@@ -93,12 +93,17 @@ export class DataProcessor {
    * @description Function to fetch the total SAOC data for the given date
    */
   async fetchWeatherSaocData(today: Date) {
+    const startDay = new Date(today);
+    startDay.setHours(0, 0, 0, 0); // Set time to midnight
+    const nextDay = new Date(startDay);
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(0, 0, 0, 0); // Set time to midnight
     const query = {
       device: 12,
       id: 171,
       time: {
-        $gte: new Date(today).toISOString(),
-        $lt: new Date(today.setDate(today.getDate() + 1)).toISOString(),
+        $gte: startDay.toISOString(),
+        $lt: nextDay.toISOString(),
       },
     };
 
