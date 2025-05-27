@@ -371,7 +371,7 @@ export class Pest {
     // Get Daily data here
     const filter = {
       name: this.name,
-      date: { $gte: this.startDate, $lte: this.endDate },
+      date: { $gte: this.startDate, $lte: today < this.endDate ? today : this.endDate },
     };
 
     try {
@@ -387,6 +387,7 @@ export class Pest {
           // if (dailyData[i].date == today) {
           if (dailyData[i].date == localDateString) {
             this.updateDailyDegreeDays(dailyData[i].degreeDays);
+            // await this.calculateDailyDegreeDays(new Date(dailyData[i].date));
             foundToday = true;
           }
         }
