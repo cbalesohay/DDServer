@@ -3,7 +3,7 @@ import { WeatherStats } from './weatherStats.js';
 export class DataProcessor {
   constructor(
     private device: number,
-    private Id: number,
+    // private Id: number,
     private soacTotalDDModel: any,
     private soacDailyDDModel: any,
     private soacYearlyDDModel: any,
@@ -100,7 +100,6 @@ export class DataProcessor {
     nextDay.setHours(0, 0, 0, 0); // Set time to midnight
     const query = {
       device: 12,
-      id: 171,
       time: {
         $gte: startDay.toISOString(),
         $lt: nextDay.toISOString(),
@@ -119,10 +118,10 @@ export class DataProcessor {
       // Fetch the data based on the query and projection
       const results = await this.soacTotalDDModel.find(query, projection).exec();
 
-      // If no results found, throw an error
-      // if (results.length === 0) {
-      //   throw new Error('No data found in results');
-      // }
+      // If no results found, try another device and id
+      if (results.length === 0) {
+        console.error('No data found in results');
+      }
       return results;
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller

@@ -88,10 +88,14 @@ async function sendProcessedData(req: any, res: any) {
       console.error(`Error occurred in sendProcessedData for getYearData for ${name}:`, error);
     }
 
+    console.log(`Stored weather low: ${storedData.weather.getLowTemp()}`);
+    console.log(`Stored weather high: ${storedData.weather.getHighTemp()}`);
+
     try {
       storedData.metrics[name].updateTempDayLow(storedData.weather.getLowTemp());
       storedData.metrics[name].updateTempDayHigh(storedData.weather.getHighTemp());
       await storedData.metrics[name].calculateRunningDegreeDays();
+      await storedData.metrics[name].calculateDailyDegreeDays();
     } catch (error) {
       console.error(`Error occurred in sendProcessedData for calculateRunningDegreeDays for ${name}:`, error);
     }
@@ -154,7 +158,7 @@ async function resetYearData(req: any, res: any) {
   // Reset the data
   try {
     // Instantiate the DataProcessor class
-    const dataProcessor = new DataProcessor(12, 171, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
+    const dataProcessor = new DataProcessor(12, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
 
     // Reset the data for each metric
     for (const name of metricNames) {
