@@ -51,7 +51,7 @@ export class WeatherStats {
     dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
 
     // Fetches the data from the database
-    const data = new DataProcessor(12, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
+    const data = new DataProcessor(12, 148, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
     try {
       const results = await data.fetchWeatherSaocData(dateObj);
 
@@ -72,10 +72,10 @@ export class WeatherStats {
    * @param users The data to store the rainfall for
    */
   private storeRain(users: WeatherReading[]) {
-    this.totalRainfall = this.millimeterToInchConversion(users[users.length - 1].total_rainfall ?? 0);
-    this.dayRainfall = this.millimeterToInchConversion(
-      (users[users.length - 1].total_rainfall ?? 0) - (users[0].total_rainfall ?? 0),
-    );
+    let rainfallEnd = users[users.length - 1]['total_rainfall'] ?? 0;
+    let rainfallStart = users[0]['total_rainfall'] ?? 0;
+    this.totalRainfall = this.millimeterToInchConversion(rainfallEnd);
+    this.dayRainfall = this.millimeterToInchConversion(rainfallEnd - rainfallStart);
   }
 
   /**
@@ -83,8 +83,8 @@ export class WeatherStats {
    * @param users The data to store the humidity for
    */
   private storeHumidity(users: WeatherReading[]) {
-    this.currHumidity = users[users.length - 1]['humidity'] ?? 0;
-    console.log('Current Humidity:', this.currHumidity);
+    let hum = users[users.length - 1]['humidity'] ?? 0;
+    this.currHumidity = hum > 0 ? hum : 0; // Ensure humidity is not negative
   }
 
   /**
@@ -116,7 +116,8 @@ export class WeatherStats {
    * @returns The amount of inches
    */
   private millimeterToInchConversion(mm: number) {
-    return mm / 25.4;
+    let conversion = mm / 25.4; // 1 inch = 25.4 mm
+    return conversion > 0 ? conversion : 0; // Ensure no negative rainfall
   }
 
   /**
@@ -165,8 +166,8 @@ export class WeatherStats {
       timeOfHigh: this.timeOfHigh,
       currTemp: this.currTemp,
       currHumidity: this.currHumidity,
-      totalRainfall: this.totalRainfall,
       dayRainfall: this.dayRainfall,
+      totalRainfall: this.totalRainfall,
     };
   }
 }

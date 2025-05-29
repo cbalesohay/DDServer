@@ -50,7 +50,6 @@ export class DataProcessor {
 
       current = new Date(current.getTime() + 24 * 60 * 60 * 1000); // Move to the next day
       current.setHours(0, 0, 0, 0); // Set time to midnight
-
     }
     // Log the request
     console.log('------------------------------');
@@ -99,7 +98,8 @@ export class DataProcessor {
     nextDay.setDate(nextDay.getDate() + 1);
     nextDay.setHours(0, 0, 0, 0); // Set time to midnight
     const query = {
-      device: 12,
+      device: this.device, // Use the device number from the constructor
+      id: this.Id, // Use the Id from the constructor
       time: {
         $gte: startDay.toISOString(),
         $lt: nextDay.toISOString(),
@@ -117,11 +117,19 @@ export class DataProcessor {
     try {
       // Fetch the data based on the query and projection
       const results = await this.soacTotalDDModel.find(query, projection).exec();
-
-      // If no results found, try another device and id
+      
+      // If no results found, throw an error
       if (results.length === 0) {
-        console.error('No data found in results');
-      }
+        query.id = 171; // Change the id to 171 if no results found
+        try {
+          const results2 = await this.soacTotalDDModel.find(query, projection).exec();
+          if (results2.length === 0) {
+            console.error('No data found for the specified date range.');
+          }
+          return results2;
+        } catch (error2) {
+          console.error('Error occurred in fetchWeatherSaocData for find:', error2);
+        }
       return results;
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller
