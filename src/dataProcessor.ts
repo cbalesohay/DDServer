@@ -3,7 +3,7 @@ import { WeatherStats } from './weatherStats.js';
 export class DataProcessor {
   constructor(
     private device: number,
-    private Id: number,
+    // private Id: number,
     private soacTotalDDModel: any,
     private soacDailyDDModel: any,
     private soacYearlyDDModel: any,
@@ -117,7 +117,7 @@ export class DataProcessor {
     try {
       // Fetch the data based on the query and projection
       const results = await this.soacTotalDDModel.find(query, projection).exec();
-
+      
       // If no results found, throw an error
       if (results.length === 0) {
         query.id = 171; // Change the id to 171 if no results found
@@ -130,7 +130,6 @@ export class DataProcessor {
         } catch (error2) {
           console.error('Error occurred in fetchWeatherSaocData for find:', error2);
         }
-      }
       return results;
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller

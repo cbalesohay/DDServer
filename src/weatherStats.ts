@@ -14,8 +14,8 @@ interface WeatherReading {
  * @description Class to store the weather data
  */
 export class WeatherStats {
-  private dayLow = Number.POSITIVE_INFINITY;
-  private dayHigh = Number.NEGATIVE_INFINITY;
+  private dayLow = 1000;
+  private dayHigh = -1000;
   private dayAverage = 0;
   private timeOfLow = '';
   private timeOfHigh = '';
@@ -54,6 +54,8 @@ export class WeatherStats {
     const data = new DataProcessor(12, 148, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
     try {
       const results = await data.fetchWeatherSaocData(dateObj);
+
+      console.log(results);
       if (results.length !== 0) {
         // Sorts the data
         this.storeTemperature(results);
