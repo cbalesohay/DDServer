@@ -99,7 +99,7 @@ export class DataProcessor {
     nextDay.setHours(0, 0, 0, 0); // Set time to midnight
     const query = {
       device: this.device, // Use the device number from the constructor
-      id: this.Id, // Use the Id from the constructor
+      id: 148, // Use the Id from the constructor
       time: {
         $gte: startDay.toISOString(),
         $lt: nextDay.toISOString(),
@@ -130,6 +130,7 @@ export class DataProcessor {
         } catch (error2) {
           console.error('Error occurred in fetchWeatherSaocData for find:', error2);
         }
+      }
       return results;
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller

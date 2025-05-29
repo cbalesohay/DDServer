@@ -10,7 +10,6 @@ import { DataProcessor } from './dataProcessor.js';
 const express = myRequire('express');
 const bodyParser = myRequire('body-parser');
 const MONGODB_URI = process.env.API_KEY;
-const MONGODB_URI_DD = process.env.DD_API_KEY;
 const mongoose = myRequire('mongoose');
 const app = express();
 var cors = myRequire('cors');
@@ -26,15 +25,6 @@ let storedData: StoredData = {
 const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
-
-// For reference of connecting two clusters for another day
-// https://stackoverflow.com/questions/76358813/how-can-i-connect-two-different-mongodb-clusters-to-my-express-js-backend-using
-
-// Connection to Chris test database
-// mongoose
-//   .connect(MONGODB_URI_DD)
-//   .then(() => console.log('Connected to MongoDB PERSONAL'))
-//   .catch((err: any) => console.error('MongoDB connection error:', err));
 
 // Connection to SOAC test database
 mongoose
@@ -87,9 +77,6 @@ async function sendProcessedData(req: any, res: any) {
     } catch (error) {
       console.error(`Error occurred in sendProcessedData for getYearData for ${name}:`, error);
     }
-
-    console.log(`Stored weather low: ${storedData.weather.getLowTemp()}`);
-    console.log(`Stored weather high: ${storedData.weather.getHighTemp()}`);
 
     try {
       storedData.metrics[name].updateTempDayLow(storedData.weather.getLowTemp());
