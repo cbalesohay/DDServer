@@ -84,6 +84,7 @@ export class WeatherStats {
    */
   private storeHumidity(users: WeatherReading[]) {
     this.currHumidity = users[users.length - 1]['humidity'] ?? 0;
+    console.log('Current Humidity:', this.currHumidity);
   }
 
   /**
@@ -163,6 +164,7 @@ export class WeatherStats {
       timeOfLow: this.timeOfLow,
       timeOfHigh: this.timeOfHigh,
       currTemp: this.currTemp,
+      currHumidity: this.currHumidity,
       totalRainfall: this.totalRainfall,
       dayRainfall: this.dayRainfall,
     };
