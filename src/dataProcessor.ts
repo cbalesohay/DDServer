@@ -11,6 +11,16 @@ export class DataProcessor {
 
   /**
    *
+   * @param d The date to convert
+   * @returns The converted date in local time
+   * @description Function to convert a UTC date to local time
+   */
+  utcToLocal(d: Date): Date {
+    return new Date(d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  }
+
+  /**
+   *
    * @param startDate The start date of the data to reset
    * @param metrics The metrics to reset
    * @description Function to reset the data for the given date range
@@ -92,19 +102,64 @@ export class DataProcessor {
    * @description Function to fetch the total SAOC data for the given date
    */
   async fetchWeatherSaocData(today: Date) {
-    const startDay = new Date(today);
-    startDay.setHours(0, 0, 0, 0); // Set time to midnight
-    const nextDay = new Date(startDay);
-    nextDay.setDate(nextDay.getDate() + 1);
-    nextDay.setHours(0, 0, 0, 0); // Set time to midnight
+    // Today's date in UTC
+    const now = new Date();
+
+    // For current date, range is from midnight to the current time
+    const todayLocal = this.utcToLocal(today);
+    todayLocal.setHours(0, 0, 0, 0); // Set time to midnight
+
+    // New date for the next day in local time
+    const nextDayLocal = new Date();
+
+    const startUTC = new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 26);
+    const endUTC = today.toISOString().slice(0, 26);
+
+    const isToday =
+      todayLocal.getFullYear() === now.getFullYear() &&
+      todayLocal.getMonth() === now.getMonth() &&
+      todayLocal.getDate() === now.getDate();
+
+    if (isToday) {
+      nextDayLocal.setDate(this.utcToLocal(new Date()).getDate());
+    } else {
+      nextDayLocal.setDate(todayLocal.getDate());
+      nextDayLocal.setTime(nextDayLocal.getTime() + 24 * 60 * 60 * 1000); // Add one day in milliseconds
+      nextDayLocal.setHours(0, 0, 0, 0); // Set time to midnight
+    }
+
+    console.log(
+      `Fetching data for local: ${todayLocal.toISOString().slice(0, 26)} to ${nextDayLocal.toISOString().slice(0, 26)}`,
+    );
+
+    // console.log(`Fetching data for UTC: ${todayUTC} to ${nextDayUTC}`);
+    console.log(`Fetching data for UTC: ${startUTC} to ${endUTC}`);
+
+    // const startDay = new Date(today);
+    // startDay.setHours(0, 0, 0, 0); // Set time to midnight
+    // const nextDay = new Date(startDay);
+    // nextDay.setDate(nextDay.getDate() + 1);
+    // nextDay.setHours(0, 0, 0, 0); // Set time to midnight
+
+    // const query = {
+    //   device: this.device, // Use the device number from the constructor
+    //   id: 148, // Use the Id from the constructor
+    //   time: {
+    //     $gte: startDay.toISOString(),
+    //     $lt: nextDay.toISOString(),
+    //   },
+    // };
+
     const query = {
       device: this.device, // Use the device number from the constructor
       id: 148, // Use the Id from the constructor
       time: {
-        $gte: startDay.toISOString(),
-        $lt: nextDay.toISOString(),
+        $gte: startUTC,
+        $lt: endUTC
       },
     };
+
+    // console.log(`Date range for query: ${startDay.toISOString()} to ${nextDay.toISOString()}`);
 
     // Specify the fields to return in the projection (rainfall, humidity, temperature)
     const projection = {
@@ -117,7 +172,7 @@ export class DataProcessor {
     try {
       // Fetch the data based on the query and projection
       const results = await this.soacTotalDDModel.find(query, projection).exec();
-      
+
       // If no results found, throw an error
       if (results.length === 0) {
         query.id = 171; // Change the id to 171 if no results found

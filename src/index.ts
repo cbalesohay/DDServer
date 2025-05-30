@@ -106,9 +106,10 @@ async function setNewDate(req: any, res: any) {
   try {
     const name: MetricName = req.body.name as MetricName;
     const newStartDate = req.body.startDate || null;
-    // newStartDate.setHours(0, 0, 0, 0); // Set time to midnight
     const newEndDate = req.body.endDate || null;
-    // newEndDate.setHours(0, 0, 0, 0); // Set time to midnight
+    if (!name || !metricNames.includes(name)) {
+      return res.status(400).json({ message: 'Invalid metric name' });
+    }
 
     await storedData.metrics[name].storeNewDate(newStartDate, newEndDate);
     res.status(200).json({ message: 'Success' });
