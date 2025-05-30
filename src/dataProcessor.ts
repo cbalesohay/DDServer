@@ -27,10 +27,10 @@ export class DataProcessor {
    */
   async dataRangeMassReset(startDate: Date, metrics: Record<string, any>) {
     const today = new Date(); // Current date
-    today.setHours(0, 0, 0, 0); // Set time to midnight
+    // today.setHours(0, 0, 0, 0); // Set time to midnight
 
     let current = new Date(startDate); // Current date for the loop
-    current.setHours(0, 0, 0, 0); // Set time to midnight
+    // current.setHours(0, 0, 0, 0); // Set time to midnight
 
     const weatherStats = new WeatherStats(); // Create an instance of WeatherStats
 
@@ -132,23 +132,7 @@ export class DataProcessor {
       `Fetching data for local: ${todayLocal.toISOString().slice(0, 26)} to ${nextDayLocal.toISOString().slice(0, 26)}`,
     );
 
-    // console.log(`Fetching data for UTC: ${todayUTC} to ${nextDayUTC}`);
     console.log(`Fetching data for UTC: ${startUTC} to ${endUTC}`);
-
-    // const startDay = new Date(today);
-    // startDay.setHours(0, 0, 0, 0); // Set time to midnight
-    // const nextDay = new Date(startDay);
-    // nextDay.setDate(nextDay.getDate() + 1);
-    // nextDay.setHours(0, 0, 0, 0); // Set time to midnight
-
-    // const query = {
-    //   device: this.device, // Use the device number from the constructor
-    //   id: 148, // Use the Id from the constructor
-    //   time: {
-    //     $gte: startDay.toISOString(),
-    //     $lt: nextDay.toISOString(),
-    //   },
-    // };
 
     const query = {
       device: this.device, // Use the device number from the constructor
@@ -158,8 +142,6 @@ export class DataProcessor {
         $lt: endUTC
       },
     };
-
-    // console.log(`Date range for query: ${startDay.toISOString()} to ${nextDay.toISOString()}`);
 
     // Specify the fields to return in the projection (rainfall, humidity, temperature)
     const projection = {
