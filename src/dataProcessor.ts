@@ -1,4 +1,5 @@
 import { WeatherStats } from './weatherStats.js';
+import { DateTime } from 'luxon';
 
 export class DataProcessor {
   constructor(
@@ -102,44 +103,18 @@ export class DataProcessor {
    * @description Function to fetch the total SAOC data for the given date
    */
   async fetchWeatherSaocData(today: Date) {
-    // Today's date in UTC
-    const now = new Date();
-
-    // For current date, range is from midnight to the current time
-    const todayLocal = this.utcToLocal(today);
-    todayLocal.setHours(0, 0, 0, 0); // Set time to midnight
-
-    // New date for the next day in local time
-    const nextDayLocal = new Date();
-
-    const startUTC = new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 26);
-    const endUTC = today.toISOString().slice(0, 26);
-
-    const isToday =
-      todayLocal.getFullYear() === now.getFullYear() &&
-      todayLocal.getMonth() === now.getMonth() &&
-      todayLocal.getDate() === now.getDate();
-
-    if (isToday) {
-      nextDayLocal.setDate(this.utcToLocal(new Date()).getDate());
-    } else {
-      nextDayLocal.setDate(todayLocal.getDate());
-      nextDayLocal.setTime(nextDayLocal.getTime() + 24 * 60 * 60 * 1000); // Add one day in milliseconds
-      nextDayLocal.setHours(0, 0, 0, 0); // Set time to midnight
-    }
+    const { startUTC, endUTC } = this.getStartAndEndDates(today);
 
     console.log(
-      `Fetching data for local: ${todayLocal.toISOString().slice(0, 26)} to ${nextDayLocal.toISOString().slice(0, 26)}`,
+      `Fetching data for UTC: ${startUTC.toISOString().slice(0, 26)} to ${endUTC.toISOString().slice(0, 26)}`,
     );
-
-    console.log(`Fetching data for UTC: ${startUTC} to ${endUTC}`);
 
     const query = {
       device: this.device, // Use the device number from the constructor
       id: 148, // Use the Id from the constructor
       time: {
-        $gte: startUTC,
-        $lt: endUTC
+        $gte: startUTC.toISOString().slice(0, 26),
+        $lt: endUTC.toISOString().slice(0, 26),
       },
     };
 
@@ -172,5 +147,18 @@ export class DataProcessor {
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller
     }
+  }
+
+  getStartAndEndDates(today: Date): { startUTC: Date; endUTC: Date } {
+    const startLocal = DateTime.fromJSDate(today, { zone: 'America/Los_Angeles' }).startOf('day');
+    const nowLocal = DateTime.now().setZone('America/Los_Angeles');
+
+    const isToday = startLocal.hasSame(nowLocal, 'day');
+    const endLocal = isToday ? nowLocal : startLocal.plus({ days: 1 });
+
+    const startUTC = startLocal.toUTC().toJSDate();
+    const endUTC = endLocal.toUTC().toJSDate();
+
+    return { startUTC, endUTC };
   }
 }

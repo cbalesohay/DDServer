@@ -21,12 +21,14 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "luxon": "^3.6.1",
     "mongoose": "^8.11.0"
   },
   "devDependencies": {
     "@tsconfig/node-lts": "^22.0.1",
     "@tsconfig/node22": "^22.0.0",
     "@types/express": "^5.0.0",
+    "@types/luxon": "^3.6.2",
     "@types/node": "^22.13.5",
     "prettier": "^3.5.2",
     "tsx": "^4.19.3",
