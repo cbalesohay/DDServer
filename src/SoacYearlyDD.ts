@@ -5,10 +5,10 @@ const mongoose = requires('mongoose');
 const soacYearlyDDSchema = new mongoose.Schema(
   {
     name: String,
-    startDate: String,
-    endDate: String,
-    totalDegreeDays: Number,
-    lastInput: String,
+    start_date: String,
+    end_date: String,
+    total_degree_days: Number,
+    last_input: String,
   },
   { versionKey: false },
 );

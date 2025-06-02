@@ -2,19 +2,19 @@ import { Pest } from "./pest.js";
 import { WeatherStats } from "./weatherStats.js";
 
 // Type check
-export const metricNames = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"] as const;
-export type MetricName = (typeof metricNames)[number];
+export const metric_names = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"] as const;
+export type MetricName = (typeof metric_names)[number];
 export interface StoredData {
   metrics: Record<MetricName, Pest>;
   weather: WeatherStats;
 }
 
 // Define the configuration for each metric
-const metricConfig: Record<MetricName, { baseTemp: number; maxTemp?: number; firstFlightThresh?: number }> = {
-  "Western Cherry": { baseTemp: 41, firstFlightThresh: 850 },
-  "Leaf Rollers": { baseTemp: 41, maxTemp: 85 },
-  "Codling Moth": { baseTemp: 50, maxTemp: 88 },
-  "Apple Scab": { baseTemp: 32 },
+const metricConfig: Record<MetricName, { base_temp: number; max_temp?: number; first_flight_thresh?: number }> = {
+  "Western Cherry": { base_temp: 41, first_flight_thresh: 850 },
+  "Leaf Rollers": { base_temp: 41, max_temp: 85 },
+  "Codling Moth": { base_temp: 50, max_temp: 88 },
+  "Apple Scab": { base_temp: 32 },
 };
 
 /**
@@ -25,14 +25,14 @@ const metricConfig: Record<MetricName, { baseTemp: number; maxTemp?: number; fir
 export function createMetricData(): Record<MetricName, Pest> {
   const data = {} as Record<MetricName, Pest>;
 
-  for (const name of metricNames) {
+  for (const name of metric_names) {
     const config = metricConfig[name];
-    const metric = new Pest(name, config.baseTemp);
+    const metric = new Pest(name, config.base_temp);
 
-    // Optioanl maxTemp param
-    if (config.maxTemp !== undefined) metric.maxTemp = config.maxTemp;
+    // Optioanl max_temp param
+    if (config.max_temp !== undefined) metric.max_temp = config.max_temp;
     // Optional thresholds.firstFlight
-    if (config.firstFlightThresh !== undefined && metric.thresholds) metric.thresholds.firstFlight = config.firstFlightThresh;
+    if (config.first_flight_thresh !== undefined && metric.thresholds) metric.thresholds.firstFlight = config.first_flight_thresh;
 
     data[name] = metric;
   }

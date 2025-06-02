@@ -6,7 +6,7 @@ const soacDailyDDSchema = new mongoose.Schema(
   {
     name: String,
     date: String,
-    degreeDays: Number,
+    degree_days: Number,
   },
   { versionKey: false },
 );

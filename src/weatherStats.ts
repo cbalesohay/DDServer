@@ -14,30 +14,30 @@ interface WeatherReading {
  * @description Class to store the weather data
  */
 export class WeatherStats {
-  private dayLow = 1000;
-  private dayHigh = -1000;
-  private dayAverage = 0;
-  private timeOfLow = '';
-  private timeOfHigh = '';
-  private currTemp = 0;
-  private currHumidity = 0;
-  private totalRainfall = 0;
-  private dayRainfall = 0;
+  private day_low = 1000;
+  private day_high = -1000;
+  private day_average = 0;
+  private time_of_low = '';
+  private time_of_high = '';
+  private curr_temp = 0;
+  private curr_humidity = 0;
+  private total_rainfall = 0;
+  private day_rainfall = 0;
 
   /**
    *
    * @returns The current low temperature
    */
-  getLowTemp() {
-    return this.dayLow;
+  get_low_temp() {
+    return this.day_low;
   }
 
   /**
    *
    * @returns The current high temperature
    */
-  getHighTemp() {
-    return this.dayHigh;
+  get_high_temp() {
+    return this.day_high;
   }
 
   /**
@@ -45,24 +45,24 @@ export class WeatherStats {
    * @param users The data to store the weather data for
    * @description Function to store the weather data
    */
-  // async storeWeatherData(model: any, date?: Date) {
-  async storeWeatherData(date?: Date) {
+  // async store_weather_data(model: any, date?: Date) {
+  async store_weather_data(date?: Date) {
     const dateObj = date ? new Date(date) : new Date();
     // dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
 
     // Fetches the data from the database
     const data = new DataProcessor(12, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
     try {
-      const results = await data.fetchWeatherSaocData(dateObj);
+      const results = await data.fetch_weather_saoc_data(dateObj);
 
       if (results.length !== 0) {
         // Sorts the data
-        this.storeTemperature(results);
-        this.storeHumidity(results);
-        this.storeRain(results);
+        this.store_temperature(results);
+        this.store_humidity(results);
+        this.store_rain(results);
       }
     } catch (error) {
-      console.error('Error occurred in storeWeatherData:', error);
+      console.error('Error occurred in store_weather_data:', error);
     }
   }
 
@@ -70,34 +70,34 @@ export class WeatherStats {
    *
    * @param users The data to store the rainfall for
    */
-  private storeRain(users: WeatherReading[]) {
-    let rainfallEnd = users[users.length - 1]['total_rainfall'] ?? 0;
-    let rainfallStart = users[0]['total_rainfall'] ?? 0;
-    this.totalRainfall = this.millimeterToInchConversion(rainfallEnd);
-    this.dayRainfall = this.millimeterToInchConversion(rainfallEnd - rainfallStart);
+  private store_rain(users: WeatherReading[]) {
+    let rainfall_end = users[users.length - 1]['total_rainfall'] ?? 0;
+    let rainfall_start = users[0]['total_rainfall'] ?? 0;
+    this.total_rainfall = this.millimeter_to_inch_conversion(rainfall_end);
+    this.day_rainfall = this.millimeter_to_inch_conversion(rainfall_end - rainfall_start);
   }
 
   /**
    *
    * @param users The data to store the humidity for
    */
-  private storeHumidity(users: WeatherReading[]) {
+  private store_humidity(users: WeatherReading[]) {
     let hum = users[users.length - 1]['humidity'] ?? 0;
-    this.currHumidity = hum > 0 ? hum : 0; // Ensure humidity is not negative
+    this.curr_humidity = hum > 0 ? hum : 0; // Ensure humidity is not negative
   }
 
   /**
    *
    * @param users The data to store the temperature for
    */
-  private storeTemperature(users: WeatherReading[]) {
+  private store_temperature(users: WeatherReading[]) {
     // Determines high and low temp for day
-    this.sortMetric(users, 'temperature');
+    this.sort_metric(users, 'temperature');
     // Sets and Converts Celcius to Fahrenheit
-    this.dayLow = Number(this.fahrenheitConversion(Number(this.dayLow)));
-    this.dayHigh = Number(this.fahrenheitConversion(Number(this.dayHigh)));
-    this.dayAverage = Number(this.fahrenheitConversion(Number(this.dayAverage)));
-    this.currTemp = Number(this.fahrenheitConversion(Number(this.currTemp)));
+    this.day_low = Number(this.fahrenheit_conversion(Number(this.day_low)));
+    this.day_high = Number(this.fahrenheit_conversion(Number(this.day_high)));
+    this.day_average = Number(this.fahrenheit_conversion(Number(this.day_average)));
+    this.curr_temp = Number(this.fahrenheit_conversion(Number(this.curr_temp)));
   }
 
   /**
@@ -105,7 +105,7 @@ export class WeatherStats {
    * @param celciusTemp The temperature in celcius to convert to fahrenheit
    * @returns The temperature in fahrenheit
    */
-  private fahrenheitConversion(celcius: number) {
+  private fahrenheit_conversion(celcius: number) {
     return celcius * (9 / 5) + 32;
   }
 
@@ -114,7 +114,7 @@ export class WeatherStats {
    * @param millimeters The amount of millimeters to convert to inches
    * @returns The amount of inches
    */
-  private millimeterToInchConversion(mm: number) {
+  private millimeter_to_inch_conversion(mm: number) {
     let conversion = mm / 25.4; // 1 inch = 25.4 mm
     return conversion > 0 ? conversion : 0; // Ensure no negative rainfall
   }
@@ -124,32 +124,32 @@ export class WeatherStats {
    * @param results The data from the database
    * @param metric The metric to sort by
    */
-  private sortMetric(results: any, metric: string) {
-    this.dayLow = 1000;
-    this.dayHigh = -1000;
-    this.dayAverage = 0;
-    this.currTemp = 0;
+  private sort_metric(results: any, metric: string) {
+    this.day_low = 1000;
+    this.day_high = -1000;
+    this.day_average = 0;
+    this.curr_temp = 0;
     let total = 0;
 
     for (let i = 0; i < results.length; i++) {
       const value = results[i][metric];
       if (value == null) continue;
 
-      if (value > (this.dayHigh ?? 0)) {
-        this.dayHigh = value;
-        this.timeOfHigh = results[i].time;
+      if (value > (this.day_high ?? 0)) {
+        this.day_high = value;
+        this.time_of_high = results[i].time;
       }
 
-      if (value < (this.dayLow ?? 0)) {
-        this.dayLow = value;
-        this.timeOfLow = results[i].time;
+      if (value < (this.day_low ?? 0)) {
+        this.day_low = value;
+        this.time_of_low = results[i].time;
       }
 
       total += value;
     }
 
-    this.currTemp = results[results.length - 1][metric];
-    if (results.length !== 0) this.dayAverage = total / results.length;
+    this.curr_temp = results[results.length - 1][metric];
+    if (results.length !== 0) this.day_average = total / results.length;
   }
 
   /**
@@ -158,15 +158,15 @@ export class WeatherStats {
    */
   toJSON() {
     return {
-      dayLow: this.dayLow,
-      dayHigh: this.dayHigh,
-      dayAverage: this.dayAverage,
-      timeOfLow: this.timeOfLow,
-      timeOfHigh: this.timeOfHigh,
-      currTemp: this.currTemp,
-      currHumidity: this.currHumidity,
-      dayRainfall: this.dayRainfall,
-      totalRainfall: this.totalRainfall,
+      day_low: this.day_low,
+      day_high: this.day_high,
+      day_average: this.day_average,
+      time_of_low: this.time_of_low,
+      time_of_high: this.time_of_high,
+      curr_temp: this.curr_temp,
+      curr_humidity: this.curr_humidity,
+      day_rainfall: this.day_rainfall,
+      total_rainfall: this.total_rainfall,
     };
   }
 }
