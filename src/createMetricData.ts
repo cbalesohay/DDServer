@@ -5,7 +5,7 @@ import { WeatherStats } from "./weatherStats.js";
 export const metric_names = ["Western Cherry", "Leaf Rollers", "Codling Moth", "Apple Scab"] as const;
 export type MetricName = (typeof metric_names)[number];
 export interface StoredData {
-  metrics: Record<MetricName, Pest>;
+  pests: Record<MetricName, Pest>;
   weather: WeatherStats;
 }
 

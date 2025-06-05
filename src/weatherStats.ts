@@ -14,15 +14,15 @@ interface WeatherReading {
  * @description Class to store the weather data
  */
 export class WeatherStats {
-  private day_low = 1000;
-  private day_high = -1000;
-  private day_average = 0;
+  private day_low = 1000.0;
+  private day_high = -1000.0;
+  private day_average = 0.0;
   private time_of_low = '';
   private time_of_high = '';
-  private curr_temp = 0;
-  private curr_humidity = 0;
-  private total_rainfall = 0;
-  private day_rainfall = 0;
+  private curr_temp = 0.0;
+  private curr_humidity = 0.0;
+  private total_rainfall = 0.0;
+  private day_rainfall = 0.0;
 
   /**
    *
@@ -93,6 +93,7 @@ export class WeatherStats {
   private store_temperature(users: WeatherReading[]) {
     // Determines high and low temp for day
     this.sort_metric(users, 'temperature');
+
     // Sets and Converts Celcius to Fahrenheit
     this.day_low = Number(this.fahrenheit_conversion(Number(this.day_low)));
     this.day_high = Number(this.fahrenheit_conversion(Number(this.day_high)));
@@ -137,19 +138,24 @@ export class WeatherStats {
 
       if (value > (this.day_high ?? 0)) {
         this.day_high = value;
-        this.time_of_high = results[i].time;
+        // this.time_of_high = results[i].time;
+        this.time_of_high = results[i]['time']; // Ensure time is set correctly
+        // console.log(`High temperature time: ${results[i]['time']}`);
       }
 
       if (value < (this.day_low ?? 0)) {
         this.day_low = value;
-        this.time_of_low = results[i].time;
+        // this.time_of_low = results[i].time;
+        this.time_of_low = results[i]['time']; // Ensure time is set correctly
       }
 
       total += value;
     }
 
-    this.curr_temp = results[results.length - 1][metric];
-    if (results.length !== 0) this.day_average = total / results.length;
+    if (results.length !== 0) {
+      this.curr_temp = results[results.length - 1][metric]; // Set current temperature to the last value
+      this.day_average = total / results.length; // Calculate average temperature
+    }
   }
 
   /**
