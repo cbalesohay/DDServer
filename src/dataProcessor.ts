@@ -1,3 +1,4 @@
+import { time } from 'console';
 import { WeatherStats } from './weatherStats.js';
 import { DateTime } from 'luxon';
 
@@ -123,6 +124,7 @@ export class DataProcessor {
       total_rainfall: 1,
       humidity: 1,
       temperature: 1,
+      time: 1,
       _id: 0, // Exclude the _id field
     };
 

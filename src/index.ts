@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 4000;
 export default app;
 
 let storedData: StoredData = {
-  metrics: createMetricData(),
+  pests: createMetricData(),
   weather: new WeatherStats(),
 };
 
@@ -73,16 +73,16 @@ async function send_processed_data(req: any, res: any) {
   // Get metric data
   for (const name of metric_names) {
     try {
-      await storedData.metrics[name].get_year_data();
+      await storedData.pests[name].get_year_data();
     } catch (error) {
       console.error(`Error occurred in send_processed_data for get_year_data for ${name}:`, error);
     }
 
     try {
-      storedData.metrics[name].update_day_temp_low(storedData.weather.get_low_temp());
-      storedData.metrics[name].update_day_temp_high(storedData.weather.get_high_temp());
-      await storedData.metrics[name].calculate_daily_degree_days();
-      await storedData.metrics[name].calculate_running_degree_days();
+      storedData.pests[name].update_day_temp_low(storedData.weather.get_low_temp());
+      storedData.pests[name].update_day_temp_high(storedData.weather.get_high_temp());
+      await storedData.pests[name].calculate_daily_degree_days();
+      await storedData.pests[name].calculate_running_degree_days();
     } catch (error) {
       console.error(`Error occurred in send_processed_data for calculate_running_degree_days for ${name}:`, error);
     }
@@ -111,7 +111,7 @@ async function set_new_date(req: any, res: any) {
       return res.status(400).json({ message: 'Invalid metric name' });
     }
 
-    await storedData.metrics[name].store_new_date(new_start_date, new_end_date);
+    await storedData.pests[name].store_new_date(new_start_date, new_end_date);
     res.status(200).json({ message: 'Success' });
 
     // Log the request
@@ -129,7 +129,7 @@ async function set_new_date(req: any, res: any) {
 
 // Call this fucntion every 24 hours at 12:05 am
 // for (const name of metric_names) {
-//   await storedData.metrics[name].storePrevDD(soacDailyDDModel, soacYearlyDDModel);
+//   await storedData.pests[name].storePrevDD(soacDailyDDModel, soacYearlyDDModel);
 // }
 
 /**
@@ -151,28 +151,28 @@ async function reset_year_data(req: any, res: any) {
     // Reset the data for each metric
     for (const name of metric_names) {
       try {
-        await dataProcessor.zero_out_yearly_data(storedData.metrics[name].name, startDate);
+        await dataProcessor.zero_out_yearly_data(storedData.pests[name].name, startDate);
       } catch (error) {
         console.error(`Error occurred in reset_year_data for zero_out_yearly_data for ${name}:`, error);
       }
-      storedData.metrics[name].reset_degree_days_daily();
+      storedData.pests[name].reset_degree_days_daily();
     }
 
     // Reset the data for the specified date range & recalculate
     try {
-      await dataProcessor.data_range_mass_reset(startDate, storedData.metrics);
+      await dataProcessor.data_range_mass_reset(startDate, storedData.pests);
     } catch (error) {
       console.error('Error occurred in reset_year_data for dataRangeMassReset:', error);
     }
 
     for (const name of metric_names) {
       try {
-        await storedData.metrics[name].get_year_data();
+        await storedData.pests[name].get_year_data();
       } catch (error) {
         console.error(`Error occurred in reset_year_data for calculate_running_degree_days for ${name}:`, error);
       }
       try {
-        await storedData.metrics[name].calculate_running_degree_days();
+        await storedData.pests[name].calculate_running_degree_days();
       } catch (error) {
         console.error(`Error occurred in reset_year_data for calculate_running_degree_days for ${name}:`, error);
       }

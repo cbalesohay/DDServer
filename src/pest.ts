@@ -91,25 +91,31 @@ export class Pest {
     return this.degree_days_date_end;
   }
 
+  get_formatted_date(date?: Date, is_curr_date: boolean = false): string {
+    let date_obj: Date;
+    if (date) date_obj = new Date(date);
+    else date_obj = is_curr_date ? new Date() : new Date(this.current_year, 0, 1);
+    date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
+    const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    return formatted_date;
+  }
+
   /**
    * @description Function to get the year data from the database
    * @returns The year data from the database
    */
   async get_year_data() {
-    const date_obj = new Date(this.current_year, 0, 1);
-    date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
-    const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const date_str = this.get_formatted_date(); // Beggining of Year "YYYY-MM-DD"
 
     const filter = {
       name: this.name,
       start_date: {
-        $gte: formatted_date,
+        $gte: date_str,
       },
     };
 
     try {
       const data = await soacYearlyDDModel.find(filter);
-      // if (data.length === 0) throw new Error('No data found');
       if (data.length === 0) this.add_new_yearly_data_point();
 
       this.update_degree_days_date_start(data[0].start_date);
@@ -128,23 +134,21 @@ export class Pest {
    * @returns
    */
   async store_new_date(change_start: Date | null, change_end: Date | null) {
-    const date_obj = new Date(this.current_year, 0, 1);
-    date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
-    const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const date_str = this.get_formatted_date(); // Beggining of Year "YYYY-MM-DD"
 
     const filter = {
       name: this.name,
       start_date: {
-        $gte: formatted_date,
+        $gte: date_str,
       },
     };
 
     try {
-      // Creates doc if does not exist
       const exists = await soacYearlyDDModel.find({ name: this.name });
-      if (exists.length === 0) await this.add_new_yearly_data_point();
+      // if (exists.length === 0) await this.add_new_yearly_data_point(); // Creates doc if does not exist
+      if (!exists) await this.add_new_yearly_data_point(); // Creates doc if does not exist
     } catch (error) {
-      throw error;
+      console.error('Error occurred in store_new_date for finding existing data:', error);
     }
 
     if (change_start != null && change_end != null) {
@@ -174,16 +178,19 @@ export class Pest {
         console.error('Error occurred in store_new_date for updateOne degree_days_date_end:', error);
       }
     }
-    this.calculate_running_degree_days();
+
+    try {
+      await this.calculate_running_degree_days();
+    } catch (error) {
+      console.error('Error occurred in store_new_date for calculate_running_degree_days:', error);
+    }
   }
 
   /**
    * @description Function to add a new yearly data point
    */
   async add_new_yearly_data_point() {
-    const date_obj = new Date(this.current_year, 0, 1);
-    date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
-    const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const date_str = this.get_formatted_date(undefined, true); // Current Date Now "YYYY-MM-DD"
 
     try {
       const doc = await soacYearlyDDModel.insertOne({
@@ -191,7 +198,7 @@ export class Pest {
         start_date: this.degree_days_date_start.toISOString().slice(0, 10),
         end_date: this.degree_days_date_end.toISOString().slice(0, 10),
         total_degree_days: this.degree_days_total,
-        last_input: formatted_date,
+        last_input: date_str,
       });
       console.log('Added new Year Data point');
       console.log('Document added: ' + doc);
@@ -207,14 +214,12 @@ export class Pest {
    * @description Function to add a new daily data point
    */
   async add_new_daily_data_point(temp_daily_dda: number, date?: Date) {
-    const date_obj = date ? new Date(date) : new Date();
-    date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
-    const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const date_str = this.get_formatted_date(date, !date); // Current Date Now "YYYY-MM-DD"
 
     try {
       const doc = await soacDailyDDModel.insertOne({
         name: this.name,
-        date: formatted_date,
+        date: date_str,
         degree_days: temp_daily_dda,
       });
       console.log('Added new Daily Data point');
@@ -230,9 +235,7 @@ export class Pest {
    * @param temp_running_dda The degree day data to store
    */
   async add_dd_to_yearly(temp_running_dda: number, date?: Date) {
-    const date_obj = date ? new Date(date) : new Date();
-    date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
-    const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const date_str = this.get_formatted_date(date, !date); // Specified Date or Current Date "YYYY-MM-DD"
 
     try {
       // Creates doc if does not exist
@@ -254,7 +257,7 @@ export class Pest {
         {
           $set: {
             total_degree_days: temp_running_dda,
-            last_input: formatted_date,
+            last_input: date_str,
           },
         },
       );
@@ -269,51 +272,38 @@ export class Pest {
    * @param temp_daily_dda The degree day data to store
    */
   async add_dd_to_daily(name: string, temp_daily_dda: number, date?: Date) {
-    const date_obj = date ? new Date(date) : new Date();
-    date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
-    const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const date_str = this.get_formatted_date(date, !date); // Specified Date or Current Date "YYYY-MM-DD"
 
     const daily_input = {
       name: name,
-      date: formatted_date,
-      degree_days: temp_daily_dda,
+      date: date_str,
     };
-    // try {
-    //   // Creates doc if does not exist
-    //   const exists = await soacDailyDDModel.find(daily_input);
-    //   if (exists.length === 0) await this.add_new_daily_data_point(temp_daily_dda, date);
-    //   else if (exists[0].degree_days < temp_daily_dda) {
-    //     try {
-    //       await soacDailyDDModel.updateOne(daily_input, { $set: { degree_days: temp_daily_dda } });
-    //     } catch (error) {
-    //       console.error('Error occurred in add_dd_to_daily for updateOne:', error);
-    //     }
-    //   }
-    //   this.update_degree_days_curr(exists[0].degree_days);
-    // } catch (error) {
-    //   console.error('Error occurred in add_dd_to_daily for find:', error);
-    //   throw error;
-    // }
 
     try {
-      const exists = await soacDailyDDModel.find(daily_input);
+      const exists = await soacDailyDDModel.findOne(daily_input);
       let final_dd = temp_daily_dda;
 
-      if (exists.length === 0) {
-        await this.add_new_daily_data_point(temp_daily_dda, date);
+      // if (exists.length === 0) {
+      if (!exists) {
+        try {
+          await this.add_new_daily_data_point(temp_daily_dda, date);
+        } catch (error) {
+          console.error('Error occurred in add_dd_to_daily for add_new_daily_data_point:', error);
+        }
       } else {
-        const existing_dd = exists[0].degree_days;
-        if (existing_dd < temp_daily_dda) {
-          await soacDailyDDModel.updateOne(daily_input, { $set: { degree_days: temp_daily_dda } });
+        if (exists.degree_days < temp_daily_dda) {
+          try {
+            await soacDailyDDModel.updateOne(daily_input, { $set: { degree_days: temp_daily_dda } });
+          } catch (error) {
+            console.error('Error occurred in add_dd_to_daily for updateOne:', error);
+          }
         } else {
-          final_dd = existing_dd;
+          final_dd = exists.degree_days; // If the existing degree days are greater, keep the existing value
         }
       }
-
       this.update_degree_days_curr(final_dd);
     } catch (error) {
       console.error('Error occurred in add_dd_to_daily:', error);
-      throw error; // Rethrow the error to be handled by the caller
     }
   }
 
@@ -388,14 +378,7 @@ export class Pest {
   async calculate_running_degree_days() {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set time to midnight
-    const local_date_string =
-      today.getFullYear() +
-      '-' +
-      String(today.getMonth() + 1).padStart(2, '0') +
-      '-' +
-      String(today.getDate()).padStart(2, '0');
-    let found_today = false;
-    let temp_degree_days_total = 0;
+    const local_date_string = today.toISOString().slice(0, 10);
 
     if (!this.degree_days_date_start || !this.degree_days_date_end) {
       throw new Error(
@@ -403,56 +386,41 @@ export class Pest {
       );
     }
 
-    let temp_start_date = this.degree_days_date_start.toString().slice(0, 10);
-    let temp_end_date = this.degree_days_date_end.toString().slice(0, 10);
-
-    // Get Daily data here
-    // const filter = {
-    //   name: this.name,
-    //   date: {
-    //     $gte: this.degree_days_date_start,
-    //     $lte: today < this.degree_days_date_end ? today : this.degree_days_date_end,
-    //   },
-    // };
+    const start_date_str = new Date(this.degree_days_date_start).toISOString().slice(0, 10);
+    const end_date_str = new Date(this.degree_days_date_end).toISOString().slice(0, 10);
+    const effective_end_date = today < this.degree_days_date_end ? local_date_string : end_date_str;
 
     const filter = {
       name: this.name,
       date: {
-        $gte: temp_start_date,
-        $lte: today < this.degree_days_date_end ? local_date_string : temp_end_date,
+        $gte: start_date_str,
+        $lte: effective_end_date, // Use local_date_string for the end date
       },
     };
 
     try {
       const daily_data = await soacDailyDDModel.find(filter).exec();
-      // if (daily_data.length === 0) throw new Error('No data found');
 
-      if (daily_data.length !== 0) {
-        // Tally total degree days
-        for (let i = 0; i < daily_data.length; i++) {
-          temp_degree_days_total += daily_data[i].degree_days;
+      if (daily_data.length === 0) {
+        this.reset_degree_days_daily();
+        return; // No data found, reset daily degree days and exit
+      }
 
-          // Fix the if. It is defaulting to reset
-          // if (daily_data[i].date == today) {
-          if (daily_data[i].date == local_date_string) {
-            this.update_daily_degree_days(daily_data[i].degree_days);
-            // await this.calculate_daily_degree_days(new Date(daily_data[i].date));
-            found_today = true;
-          }
+      let total = 0;
+
+      for (const entry of daily_data) {
+        total += entry.degree_days;
+        if (entry.date === local_date_string) this.update_daily_degree_days(entry.degree_days);
+      }
+
+      if (this.degree_days_total !== total) {
+        try {
+          // Store the data
+          this.update_degree_days_total(total);
+          await this.add_dd_to_yearly(total); // Assign total to the degree_days_total
+        } catch (error) {
+          console.error('Error occurred in calculate_running_degree_days for add_dd_to_yearly:', error);
         }
-
-        if (!found_today) this.reset_degree_days_daily();
-
-        if (this.degree_days_total !== temp_degree_days_total) {
-          try {
-            // Store the data
-            this.update_degree_days_total(temp_degree_days_total);
-            await this.add_dd_to_yearly(temp_degree_days_total); // Assign temp_running_dda to the degree_days_total
-          } catch (error) {
-            console.error('Error occurred in calculate_running_degree_days for add_dd_to_yearly:', error);
-          }
-        }
-
       }
     } catch (error) {
       throw error; // Rethrow the error to be handled by the caller
@@ -467,11 +435,6 @@ export class Pest {
    *       2
    */
   async calculate_daily_degree_days(date?: Date) {
-    // Pull new weather data
-    const normalized_date = date ? new Date(date) : new Date(); // Use passed date or current date
-    normalized_date.setHours(0, 0, 0, 0); // Normalize to local midnight
-    normalized_date.toISOString().slice(0, 10);
-
     this.update_daily_degree_days(Math.max((this.day_temp_low + this.day_temp_high) / 2 - this.temp_base, 0));
     if (this.degree_days_daily > 0) {
       try {
