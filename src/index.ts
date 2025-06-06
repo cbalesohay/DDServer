@@ -38,6 +38,7 @@ app.use(express.json());
 app.listen(PORT, () => {
   console.log(`Server running on EC2 port ${PORT}`);
 });
+app.get('/sendFast', asyncHandler(send_fast_data)); // Sends most updated data
 app.get('/sendData', asyncHandler(send_processed_data)); // Sends most updated data
 app.post('/newDate', asyncHandler(set_new_date)); // Sets new date for the metric
 app.post('/reCalcData', asyncHandler(reset_year_data)); // Resets the year data for the metric
@@ -53,6 +54,13 @@ app.use((err: any, req: any, res: any, next: any) => {
     },
   });
 });
+
+function send_fast_data(req: any, res: any) {
+  res.status(200).json({
+    message: 'Success',
+    data: storedData,
+  });
+}
 
 /**
  *
