@@ -10,7 +10,6 @@ const soacDailyDDSchema = new mongoose.Schema(
   },
   { versionKey: false },
 );
-// const soacDailyDDModel = mongoose.model('dailyDegreeDays', soacDailyDDSchema, 'dailyDegreeDays');
 const soacDailyDDModel = mongoose.model('daily_degree_days', soacDailyDDSchema, 'daily_degree_days');
 export default soacDailyDDModel;
 

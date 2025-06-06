@@ -1,7 +1,3 @@
-// import { DataProcessor } from './dataProcessor.js';
-import soacDailyDDModel from './models/SoacDailyDD.js';
-import soacTotalDDModel from './models/SoacTotalDD.js';
-import soacYearlyDDModel from './models/SoacYearlyDD.js';
 import { PestDatabase } from './pestDatabase.js';
 import { DateTime } from 'luxon';
 
@@ -72,16 +68,9 @@ export class WeatherStats {
   // async store_weather_data(model: any, date?: Date) {
   async store_weather_data(date?: Date) {
     const dateObj = date ? new Date(date) : new Date();
-    // dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
-
     const { start_utc, end_utc } = this.get_start_and_end_dates(dateObj);
 
-    // Fetches the data from the database
-    // const data = new DataProcessor(12, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
-    // const data = this.db.find_day_data(start_utc, end_utc);
-
     try {
-      // const results = await data.fetch_weather_saoc_data(dateObj);
       const results = await this.db.find_day_data(start_utc, end_utc);
 
       if (results.length !== 0) {
@@ -167,14 +156,11 @@ export class WeatherStats {
 
       if (value > (this.day_high ?? 0)) {
         this.day_high = value;
-        // this.time_of_high = results[i].time;
         this.time_of_high = results[i]['time']; // Ensure time is set correctly
-        // console.log(`High temperature time: ${results[i]['time']}`);
       }
 
       if (value < (this.day_low ?? 0)) {
         this.day_low = value;
-        // this.time_of_low = results[i].time;
         this.time_of_low = results[i]['time']; // Ensure time is set correctly
       }
 
