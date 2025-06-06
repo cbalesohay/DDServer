@@ -1,7 +1,9 @@
-import { DataProcessor } from './dataProcessor.js';
-import soacDailyDDModel from './SoacDailyDD.js';
-import soacTotalDDModel from './SoacTotalDD.js';
-import soacYearlyDDModel from './SoacYearlyDD.js';
+// import { DataProcessor } from './dataProcessor.js';
+import soacDailyDDModel from './models/SoacDailyDD.js';
+import soacTotalDDModel from './models/SoacTotalDD.js';
+import soacYearlyDDModel from './models/SoacYearlyDD.js';
+import { PestDatabase } from './pestDatabase.js';
+import { DateTime } from 'luxon';
 
 interface WeatherReading {
   time: string;
@@ -23,6 +25,11 @@ export class WeatherStats {
   private curr_humidity = 0.0;
   private total_rainfall = 0.0;
   private day_rainfall = 0.0;
+  private db: PestDatabase;
+
+  constructor(init_db: PestDatabase) {
+    this.db = init_db;
+  }
 
   /**
    *
@@ -40,6 +47,23 @@ export class WeatherStats {
     return this.day_high;
   }
 
+  get_curr_temp() {
+    return this.curr_temp;
+  }
+
+  get_start_and_end_dates(today: Date): { start_utc: Date; end_utc: Date } {
+    const startLocal = DateTime.fromJSDate(today, { zone: 'America/Los_Angeles' }).startOf('day');
+    const nowLocal = DateTime.now().setZone('America/Los_Angeles');
+
+    const isToday = startLocal.hasSame(nowLocal, 'day');
+    const endLocal = isToday ? nowLocal : startLocal.plus({ days: 1 });
+
+    const start_utc = startLocal.toUTC().toJSDate();
+    const end_utc = endLocal.toUTC().toJSDate();
+
+    return { start_utc, end_utc };
+  }
+
   /**
    *
    * @param users The data to store the weather data for
@@ -50,10 +74,15 @@ export class WeatherStats {
     const dateObj = date ? new Date(date) : new Date();
     // dateObj.setHours(0, 0, 0, 0); // Normalize to midnight
 
+    const { start_utc, end_utc } = this.get_start_and_end_dates(dateObj);
+
     // Fetches the data from the database
-    const data = new DataProcessor(12, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
+    // const data = new DataProcessor(12, soacTotalDDModel, soacDailyDDModel, soacYearlyDDModel);
+    // const data = this.db.find_day_data(start_utc, end_utc);
+
     try {
-      const results = await data.fetch_weather_saoc_data(dateObj);
+      // const results = await data.fetch_weather_saoc_data(dateObj);
+      const results = await this.db.find_day_data(start_utc, end_utc);
 
       if (results.length !== 0) {
         // Sorts the data
