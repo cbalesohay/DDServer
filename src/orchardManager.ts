@@ -124,12 +124,33 @@ export class OrchardManager {
     if (!name || !(name in this.pests)) {
       res.status(400).json({ message: 'Invalid metric name' });
     }
+
+    let start = null,
+      end = null;
+    if (new_start_date != null) {
+      start = new Date(new_start_date);
+      this.pests[name].update_start_date(start);
+    }
+    if (new_end_date != null) {
+      end = new Date(new_end_date);
+      this.pests[name].update_end_date(end);
+    }
     try {
-      await this.db.update_yearly_dates(name, new_start_date, new_end_date);
-      res.status(200).json({ message: 'Success' });
+      await this.db.update_yearly_dates(name, start, end);
+      // res.status(200).json({ message: 'Success' });
     } catch (error) {
       console.error('Error occurred in set_new_date:', error);
       res.status(500).json({ message: 'Error' });
+    }
+
+    // update running degree days
+    try {
+      await this.pests[name].calculate_running_degree_days();
+      // res.status(200).json({ message: 'Running degree days updated successfully' });
+    } catch (error) {
+      console.error('Error occurred while updating running degree days:', error);
+      res.status(500).json({ message: 'Error updating running degree days' });
+      return;
     }
 
     // Log the request
@@ -139,6 +160,8 @@ export class OrchardManager {
     if (new_start_date != null) console.log('Start Date: ' + new_start_date);
     if (new_end_date != null) console.log('End Date:   ' + new_end_date);
     console.log('------------------------------');
+
+    res.status(200).json({ message: 'Success' });
   }
 
   /**
@@ -188,7 +211,6 @@ export class OrchardManager {
             }
           }
         }
-
       }
 
       // Recalculate the running degree days for each pest
