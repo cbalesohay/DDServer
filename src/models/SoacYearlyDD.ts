@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import { DateTime } from 'luxon';
+import { start } from 'repl';
 const requires = createRequire(import.meta.url);
 const mongoose = requires('mongoose');
 
@@ -39,10 +40,31 @@ export class SoacYearlyDD {
     }
   }
 
-  async update_dates(name: string, start_date: Date, end_date: Date): Promise<void> {}
+  async update_dates(name: string, start_date: Date | null, end_date: Date | null): Promise<void> {
+    interface DateDoc {
+      name: string;
+      start_date?: string;
+      end_date?: string;
+    }
+
+    const doc: DateDoc = { name };
+
+    if (!name) {
+      console.error('Name must be provided.');
+      return;
+    }
+    if (start_date) doc.start_date = start_date.toISOString().split('T')[0];
+    if (end_date) doc.end_date = end_date.toISOString().split('T')[0];
+
+    try {
+      await this.model.updateOne({ name: name }, doc, { upsert: true }).exec();
+    } catch (error) {
+      console.error('Error occurred in update_dates:', error);
+    }
+  }
 
   async zero_out_yearly_total_dd(year: number): Promise<void> {
-    const date_str = new Date(year, 0, 1).toISOString().split('T')[0];;
+    const date_str = new Date(year, 0, 1).toISOString().split('T')[0];
     try {
       await this.model.updateMany({}, { $set: { total_degree_days: 0, last_input: date_str } }).exec();
     } catch (error) {

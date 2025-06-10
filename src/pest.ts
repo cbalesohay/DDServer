@@ -107,6 +107,13 @@ export class Pest {
     return this.degree_days_date_end;
   }
 
+  update_start_date(date: Date) {
+    this.degree_days_date_start = date;
+  }
+  update_end_date(date: Date) {
+    this.degree_days_date_end = date;
+  }
+
   /**
    *
    * @param low The low temperature for the day

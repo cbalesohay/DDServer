@@ -62,7 +62,7 @@ export class PestDatabase {
     }
   }
 
-  async update_yearly_dates(pest_name: string, start_date: Date, end_date: Date) {
+  async update_yearly_dates(pest_name: string, start_date: Date | null, end_date: Date | null) {
     try {
       await this.model_yearly.update_dates(pest_name, start_date, end_date);
     } catch (error) {
