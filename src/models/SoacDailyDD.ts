@@ -10,7 +10,6 @@ const soacDailyDDSchema = new mongoose.Schema(
   },
   { versionKey: false },
 );
-// const soacDailyDDModel = mongoose.model('dailyDegreeDays', soacDailyDDSchema, 'dailyDegreeDays');
 const soacDailyDDModel = mongoose.model('daily_degree_days', soacDailyDDSchema, 'daily_degree_days');
 export default soacDailyDDModel;
 
@@ -46,6 +45,25 @@ export class SoacDailyDD {
     }
   }
 
+  async find_all_daily(year: number) {
+    try {
+      let start_date = new Date(year, 0, 1);
+      start_date.setHours(0, 0, 0, 0);
+      let end_date = new Date(year, 11, 31);
+      end_date.setHours(23, 59, 59, 999);
+      let doc = {
+        date: {
+          $gte: start_date.toISOString().split('T')[0],
+          $lte: end_date.toISOString().split('T')[0],
+        },
+      };
+      return await this.model.find(doc).exec();
+    } catch (error) {
+      console.error('Error occurred in find_all_daily:', error);
+      return [];
+    }
+  }
+
   async insert_daily(name: string, date: Date, dd: number): Promise<void> {
     try {
       let doc = { name: name, date: date.toISOString().split('T')[0], degree_days: dd };
@@ -56,12 +74,16 @@ export class SoacDailyDD {
   }
 
   async update_daily(name: string, date: Date, dd: number): Promise<void> {
-    if (date == null) {
-      date = new Date();
-    }
+    const dateStr = date.toISOString().split('T')[0];
+    const filter = { name, date: dateStr };
+
     try {
-      let doc = { name: name, date: date.toISOString().split('T')[0] };
-      await this.model.updateOne(doc, { $set: { degree_days: dd } }).exec();
+      const result = await this.model.updateOne(filter, { $set: { degree_days: dd } }).exec();
+
+      if (result.matchedCount === 0) {
+        // No document found, so insert new one
+        await this.insert_daily(name, date, dd);
+      }
     } catch (error) {
       console.error('Error occurred in update_daily:', error);
     }
@@ -75,9 +97,20 @@ export class SoacDailyDD {
     }
   }
 
-  async delete_daily_all(): Promise<void> {
+  async delete_daily_all_by_year(year: number): Promise<void> {
+    const start_date_str = `${year}-01-01`;
+
+    const end_date_str = `${year}-12-31`;
+
+    const doc = {
+      date: {
+        $gte: start_date_str,
+        $lte: end_date_str,
+      },
+    };
+
     try {
-      await this.model.deleteMany({}).exec();
+      await this.model.deleteMany(doc).exec();
     } catch (error) {
       console.error('Error occurred in delete_daily:', error);
     }

@@ -1,10 +1,4 @@
-import { WeatherStats } from './weatherStats.js';
-import soacDailyDDModel from './models/SoacDailyDD.js';
-import soacYearlyDDModel from './models/SoacYearlyDD.js';
-import soacTotalDDModel from './models/SoacTotalDD.js';
-import { start } from 'repl';
 import { PestDatabase } from './pestDatabase.js';
-import { read } from 'fs';
 
 enum DDType {
   DAILY = 'daily',
@@ -83,20 +77,34 @@ export class Pest {
    * @param type  The type of degree days to update (daily or yearly)
    * @description Function to update the degree days
    */
-  private update_dd_type(dd: number, type: DDType): void {
+  private async update_dd_type(dd: number, type: DDType, date: Date = new Date()): Promise<void> {
     this.validate_degree_days(dd);
     if (type === DDType.DAILY) {
       this.degree_days_total += dd - this.degree_days_daily; // Update total with the difference
       this.degree_days_daily = dd; // Update daily degree days
+      try {
+        await this.db.update_daily(this.name, date, this.degree_days_daily);
+      } catch (error) {
+        console.error('Error occurred in update_dd_type for update_daily:', error);
+        throw error; // Rethrow to handle it in the caller
+      }
     } else if (type === DDType.YEARLY) {
       this.degree_days_total = dd; // Update total degree days
       try {
-        this.db.update_yearly_total_dd(this.name, this.degree_days_total);
+        await this.db.update_yearly_total_dd(this.name, this.degree_days_total, date);
       } catch (error) {
         console.error('Error occurred in update_dd_type for update_yearly_total_dd:', error);
         throw error; // Rethrow to handle it in the caller
       }
     }
+  }
+
+  get_start_date() {
+    return this.degree_days_date_start;
+  }
+
+  get_end_date() {
+    return this.degree_days_date_end;
   }
 
   /**
@@ -113,409 +121,66 @@ export class Pest {
     this.day_temp_high = high > this.max_temp ? this.max_temp : high; // Ensure high does not exceed max_temp
   }
 
-  update_all_values(data: any) {
-    if (!data) {
-      throw new Error('Data is undefined or null');
-    }
-    this.degree_days_date_start = data['degree_days_date_start'];
-    this.degree_days_date_end = data['degree_days_date_end'];
-    this.degree_days_total = data['degree_days_total'];
-  }
-
-  // update_daily_degree_days(dd: number) {
-  //   this.degree_days_daily = dd;
-  // }
-
-  // update_degree_days_total(dd: number) {
-  //   this.degree_days_total = dd;
-  // }
-
-  // update_degree_days_date_start(date: Date) {
-  //   this.degree_days_date_start = date;
-  // }
-
-  // update_degree_days_date_end(date: Date) {
-  //   this.degree_days_date_end = date;
-  // }
-
-  // update_degree_days_curr(dd: number) {
-  //   this.degree_days_curr = dd;
-  // }
-
-  // reset_degree_days_daily() {
-  //   this.degree_days_daily = 0;
-  // }
-
-  // get_degree_days_daily() {
-  //   return this.degree_days_daily;
-  // }
-
-  // get_degree_days_total() {
-  //   return this.degree_days_total;
-  // }
-
-  // get_degree_days_date_start() {
-  //   return this.degree_days_date_start;
-  // }
-
-  // get_degree_days_date_end() {
-  //   return this.degree_days_date_end;
-  // }
-
-  // get_formatted_date(date?: Date, is_curr_date: boolean = false): string {
-  //   let date_obj: Date;
-  //   if (date) date_obj = new Date(date);
-  //   else date_obj = is_curr_date ? new Date() : new Date(this.current_year, 0, 1);
-  //   date_obj.setHours(0, 0, 0, 0); // Normalize to midnight
-  //   const formatted_date = date_obj.toISOString().slice(0, 10); // "YYYY-MM-DD"
-  //   return formatted_date;
-  // }
-
-  // /**
-  //  * @description Function to get the year data from the database
-  //  * @returns The year data from the database
-  //  */
-  // async get_year_data() {
-  //   const date_str = this.get_formatted_date(); // Beggining of Year "YYYY-MM-DD"
-
-  //   const filter = {
-  //     name: this.name,
-  //     start_date: {
-  //       $gte: date_str,
-  //     },
-  //   };
-
-  //   try {
-  //     const data = await soacYearlyDDModel.find(filter);
-  //     if (data.length === 0) this.add_new_yearly_data_point();
-
-  //     this.update_degree_days_date_start(data[0].start_date);
-  //     this.update_degree_days_date_end(data[0].end_date);
-  //     this.update_degree_days_total(data[0].degree_days_total);
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
-
-  /**
-   *
-   * @param name
-   * @param change_start
-   * @param change_end
-   * @returns
-   */
-  // async store_new_date(change_start: Date | null, change_end: Date | null) {
-  //   const date_str = this.get_formatted_date(); // Beggining of Year "YYYY-MM-DD"
-
-  //   const filter = {
-  //     name: this.name,
-  //     start_date: {
-  //       $gte: date_str,
-  //     },
-  //   };
-
-  //   try {
-  //     const exists = await soacYearlyDDModel.find({ name: this.name });
-  //     // if (exists.length === 0) await this.add_new_yearly_data_point(); // Creates doc if does not exist
-  //     if (!exists) await this.add_new_yearly_data_point(); // Creates doc if does not exist
-  //   } catch (error) {
-  //     console.error('Error occurred in store_new_date for finding existing data:', error);
-  //   }
-
-  //   if (change_start != null && change_end != null) {
-  //     try {
-  //       await soacYearlyDDModel.updateMany(filter, {
-  //         $set: { start_date: change_start, end_date: change_end },
-  //       });
-  //       this.update_degree_days_date_start(change_start);
-  //       this.update_degree_days_date_end(change_end);
-  //     } catch (error) {
-  //       console.error('Error occurred in store_new_date for updateMany:', error);
-  //     }
-  //   } else if (change_start != null) {
-  //     try {
-  //       await soacYearlyDDModel.updateOne(filter, {
-  //         $set: { start_date: change_start },
-  //       });
-  //       this.update_degree_days_date_start(change_start);
-  //     } catch (error) {
-  //       console.error('Error occurred in store_new_date for updateOne degree_days_date_start:', error);
-  //     }
-  //   } else if (change_end != null) {
-  //     try {
-  //       await soacYearlyDDModel.updateOne(filter, { $set: { end_date: change_end } });
-  //       this.update_degree_days_date_end(change_end);
-  //     } catch (error) {
-  //       console.error('Error occurred in store_new_date for updateOne degree_days_date_end:', error);
-  //     }
-  //   }
-
-  //   try {
-  //     await this.calculate_running_degree_days();
-  //   } catch (error) {
-  //     console.error('Error occurred in store_new_date for calculate_running_degree_days:', error);
-  //   }
-  // }
-
-  /**
-   * @description Function to add a new yearly data point
-   */
-  // async add_new_yearly_data_point() {
-  //   const date_str = this.get_formatted_date(undefined, true); // Current Date Now "YYYY-MM-DD"
-
-  //   try {
-  //     const doc = await soacYearlyDDModel.insertOne({
-  //       name: this.name,
-  //       start_date: this.degree_days_date_start.toISOString().slice(0, 10),
-  //       end_date: this.degree_days_date_end.toISOString().slice(0, 10),
-  //       total_degree_days: this.degree_days_total,
-  //       last_input: date_str,
-  //     });
-  //     console.log('Added new Year Data point');
-  //     console.log('Document added: ' + doc);
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
-
-  /**
-   *
-   * @param temp_daily_dda The degree day data to store
-   * @param date The date to store the data for
-   * @description Function to add a new daily data point
-   */
-  // async add_new_daily_data_point(temp_daily_dda: number, date?: Date) {
-  //   const date_str = this.get_formatted_date(date, !date); // Current Date Now "YYYY-MM-DD"
-
-  //   try {
-  //     const doc = await soacDailyDDModel.insertOne({
-  //       name: this.name,
-  //       date: date_str,
-  //       degree_days: temp_daily_dda,
-  //     });
-  //     console.log('Added new Daily Data point');
-  //     console.log('Document added: ' + doc);
-  //   } catch (error) {
-  //     console.error('Error occurred in add_new_daily_data_point:', error);
-  //     throw error;
-  //   }
-  // }
-
-  /**
-   * @description Function to record degree day data per day
-   * @param temp_running_dda The degree day data to store
-   */
-  // async add_dd_to_yearly(temp_running_dda: number, date?: Date) {
-  //   const date_str = this.get_formatted_date(date, !date); // Specified Date or Current Date "YYYY-MM-DD"
-
-  //   try {
-  //     // Creates doc if does not exist
-  //     const exists = await soacYearlyDDModel.find({ name: this.name });
-  //     if (exists.length === 0) await this.add_new_yearly_data_point();
-  //   } catch (error) {
-  //     console.error('Error occurred in add_dd_to_yearly for existing data:', error);
-  //   }
-
-  //   // Push the new degree day data to the database
-  //   try {
-  //     await soacYearlyDDModel.updateOne(
-  //       {
-  //         name: this.name,
-  //         start_date: {
-  //           $gte: new Date(`${this.current_year}-01-01`).toISOString().slice(0, 10),
-  //         },
-  //       },
-  //       {
-  //         $set: {
-  //           total_degree_days: temp_running_dda,
-  //           last_input: date_str,
-  //         },
-  //       },
-  //     );
-  //   } catch (error) {
-  //     console.error('Error occurred in add_dd_to_yearly for updateOne:', error);
-  //   }
-  // }
-
-  /**
-   *
-   * @param name The name of the pest
-   * @param temp_daily_dda The degree day data to store
-   */
-  // async add_dd_to_daily(name: string, temp_daily_dda: number, date?: Date) {
-  //   const date_str = this.get_formatted_date(date, !date); // Specified Date or Current Date "YYYY-MM-DD"
-
-  //   const daily_input = {
-  //     name: name,
-  //     date: date_str,
-  //   };
-
-  //   try {
-  //     const exists = await soacDailyDDModel.findOne(daily_input);
-  //     let final_dd = temp_daily_dda;
-
-  //     // if (exists.length === 0) {
-  //     if (!exists) {
-  //       try {
-  //         await this.add_new_daily_data_point(temp_daily_dda, date);
-  //       } catch (error) {
-  //         console.error('Error occurred in add_dd_to_daily for add_new_daily_data_point:', error);
-  //       }
-  //     } else {
-  //       if (exists.degree_days < temp_daily_dda) {
-  //         try {
-  //           await soacDailyDDModel.updateOne(daily_input, { $set: { degree_days: temp_daily_dda } });
-  //         } catch (error) {
-  //           console.error('Error occurred in add_dd_to_daily for updateOne:', error);
-  //         }
-  //       } else {
-  //         final_dd = exists.degree_days; // If the existing degree days are greater, keep the existing value
-  //       }
-  //     }
-  //     this.update_degree_days_curr(final_dd);
-  //   } catch (error) {
-  //     console.error('Error occurred in add_dd_to_daily:', error);
-  //   }
-  // }
-
-  /**
-   * @description Function to store the previous days data
-   */
-  // async store_prev_dd() {
-  //   const today = new Date();
-  //   today.setHours(0, 0, 0, 0); // Set time to midnight
-  //   const prev_day = today.setDate(today.getDate() - 1);
-
-  //   let prev_total = -1;
-
-  //   // Filter model for specific date
-  //   const date_string = new Date(prev_day).toISOString().slice(0, 10);
-  //   const filter = {
-  //     name: this.name,
-  //     date: { $gte: date_string },
-  //   };
-
-  //   try {
-  //     // Get the data from the database
-  //     const daily_data = await soacDailyDDModel.find(filter).exec();
-  //     if (daily_data.length === 0) throw new Error('No data found');
-
-  //     // calculate previous total
-  //     prev_total = 0;
-  //     for (let i = 0; i < daily_data.length; i++) {
-  //       prev_total += daily_data[i].degree_days;
-  //     }
-  //   } catch (error) {
-  //     throw error;
-  //   }
-
-  //   // Store and update the total seasonal data
-  //   if (prev_total === -1) {
-  //     console.error('Error occurred in store_prev_dd: No data found');
-  //     throw new Error('Error occurred in totaling previous data');
-  //   } else {
-  //     // Store the data in the database
-  //     const date_string = new Date(this.current_year, 0, 1).toISOString().slice(0, 10);
-  //     const filter = {
-  //       name: this.name,
-  //       degree_days_date_start: {
-  //         $gte: date_string,
-  //       },
-  //     };
-
-  //     try {
-  //       const yearly_data = await soacYearlyDDModel.find(filter);
-  //       if (yearly_data.length === 0) throw new Error('No data found');
-
-  //       try {
-  //         // Update the data in the database
-  //         yearly_data.updateOne({
-  //           name: this.name,
-  //           total_degree_days: prev_total, //////////////////////////////////////////
-  //         });
-  //       } catch (error) {
-  //         console.error('Error occurred in store_prev_dd for updateOne:', error);
-  //       }
-  //     } catch (error) {
-  //       throw error;
-  //     }
-  //   }
-  // }
-
   /**
    * @description Function to calculate running degree days
    * @returns For testing purposes, returns 0 if successful and -1 if there was an error
    */
+  // async calculate_running_degree_days() {
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0); // Set time to midnight
+
+  //   try {
+  //     const start = this.degree_days_date_start;
+  //     const end = this.degree_days_date_end;
+
+  //     const results = await this.db.find_daily_range(this.name, start, end <= today ? end : today);
+  //     const total_dd = results.reduce((sum: number, r: { degree_days: number }) => sum + r['degree_days'], 0);
+
+  //     if (total_dd != this.degree_days_total) this.update_dd_type(total_dd, DDType.YEARLY); // Update the total degree days if it has changed
+  //   } catch (error) {
+  //     console.error('Error occurred in calculate_running_degree_days:', error);
+  //     throw error; // Rethrow the error to be handled by the caller
+  //   }
+  // }
   async calculate_running_degree_days() {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set time to midnight
-    const local_date_string = today.toISOString().slice(0, 10);
-
-    // if (!this.degree_days_date_start || !this.degree_days_date_end) {
-    //   throw new Error(
-    //     `Start or end date is undefined in calculate_running_degree_days. Start: ${this.degree_days_date_start}, End: ${this.degree_days_date_end}`,
-    //   );
-    // }
-
-    // const start_date_str = new Date(this.degree_days_date_start).toISOString().slice(0, 10);
-    // const end_date_str = new Date(this.degree_days_date_end).toISOString().slice(0, 10);
-    // const effective_end_date = today < this.degree_days_date_end ? local_date_string : end_date_str;
 
     try {
       const start = this.degree_days_date_start;
       const end = this.degree_days_date_end;
 
-      if (today < start || today > end) {
-        console.warn(
-          `Today's date ${local_date_string} is outside the range of ${start.toISOString().slice(0, 10)} to ${end.toISOString().slice(0, 10)}`,
-        );
-        return; // Exit if today's date is outside the range
+      if (start > today) return; // No calculation needed for future ranges
+
+      const cappedEnd = end <= today ? end : today;
+      const results = await this.db.find_daily_range(this.name, start, cappedEnd);
+
+      const total_dd = results.reduce((sum: number, r: { degree_days?: number }) => sum + (r.degree_days ?? 0), 0);
+
+      if (total_dd !== this.degree_days_total) {
+        await this.update_dd_type(total_dd, DDType.YEARLY);
       }
-
-      const results = await this.db.find_daily_range(this.name, start, end <= today ? end : today);
-      const total_dd = results.reduce((sum: number, r: { degree_days: number }) => sum + r['degree_days'], 0);
-
-      if (total_dd != this.degree_days_total) this.update_dd_type(total_dd, DDType.YEARLY); // Update the total degree days if it has changed
     } catch (error) {
       console.error('Error occurred in calculate_running_degree_days:', error);
-      throw error; // Rethrow the error to be handled by the caller
+      throw error;
+    }
+  }
+
+  async calculate_running_degree_days_data(data: any) {
+    if (!data) {
+      console.error('No data provided for calculate_running_degree_days_data');
+      return;
     }
 
-    // const filter = {
-    //   name: this.name,
-    //   date: {
-    //     $gte: start_date_str,
-    //     $lte: effective_end_date, // Use local_date_string for the end date
-    //   },
-    // };
-
-    // try {
-    //   const daily_data = await soacDailyDDModel.find(filter).exec();
-
-    //   if (daily_data.length === 0) {
-    //     this.reset_degree_days_daily();
-    //     return; // No data found, reset daily degree days and exit
-    //   }
-
-    //   let total = 0;
-
-    //   for (const entry of daily_data) {
-    //     total += entry.degree_days;
-    //     if (entry.date === local_date_string) this.update_daily_degree_days(entry.degree_days);
-    //   }
-
-    //   if (this.degree_days_total !== total) {
-    //     try {
-    //       // Store the data
-    //       this.update_degree_days_total(total);
-    //       await this.add_dd_to_yearly(total); // Assign total to the degree_days_total
-    //     } catch (error) {
-    //       console.error('Error occurred in calculate_running_degree_days for add_dd_to_yearly:', error);
-    //     }
-    //   }
-    // } catch (error) {
-    //   throw error; // Rethrow the error to be handled by the caller
-    // }
+    const filtered_data = data.filter((d: any) => d.name === this.name);
+    const total_dd = filtered_data.reduce((sum: number, r: { degree_days: number }) => sum + r['degree_days'], 0);
+    console.log(`Total degree days for ${this.name} from data: ${total_dd}`);
+    try {
+      if (total_dd != this.degree_days_total) await this.update_dd_type(total_dd, DDType.YEARLY); // Update the total degree days if it has changed
+    } catch (error) {
+      console.error('Error occurred in calculate_running_degree_days_data:', error);
+      throw error; // Rethrow the error to be handled by the caller
+    }
   }
 
   /**
@@ -525,32 +190,19 @@ export class Pest {
    *  ------------  - Base Temp
    *       2
    */
-  async calculate_daily_degree_days(date?: Date) {
-    // this.update_daily_degree_days(Math.max((this.day_temp_low + this.day_temp_high) / 2 - this.temp_base, 0));
-    // if (this.degree_days_daily > 0) {
-    //   try {
-    //     await this.add_dd_to_daily(this.name, this.degree_days_daily, date); // Add to daily DD
-    //   } catch (error) {
-    //     console.error('Error occurred in calculate_daily_degree_days for add_dd_to_daily:', error);
-    //   }
+  async calculate_daily_degree_days(date: Date = new Date()) {
+    try {
+      if (this.day_temp_low < this.temp_base && this.day_temp_high < this.temp_base) {
+        console.warn(
+          `Daily temperatures for ${this.name} are out of bounds: Low: ${this.day_temp_low}, High: ${this.day_temp_high}, Base: ${this.temp_base}, Max: ${this.max_temp}`,
+        );
+        await this.update_dd_type(0, DDType.DAILY, date); // If both temps are below base, set daily DD to 0
+        return;
+      }
 
-    //   try {
-    //     await this.add_dd_to_yearly(this.degree_days_daily, date); // Add to running DD total
-    //   } catch (error) {
-    //     console.error('Error occurred in calculate_daily_degree_days for add_dd_to_yearly:', error);
-    //   }
-    // }
-
-    if (this.day_temp_low < this.temp_base && this.day_temp_high < this.temp_base) {
-      console.warn(
-        `Daily temperatures for ${this.name} are out of bounds: Low: ${this.day_temp_low}, High: ${this.day_temp_high}, Base: ${this.temp_base}, Max: ${this.max_temp}`,
-      );
-      this.update_dd_type(0, DDType.DAILY); // If both temps are below base, set daily DD to 0
-      return;
-    }
-
-    const daily_dd = Math.max((this.day_temp_low + this.day_temp_high) / 2 - this.temp_base, 0);
-    this.update_dd_type(daily_dd, DDType.DAILY); // Update daily degree days
+      const daily_dd = Math.max((this.day_temp_low + this.day_temp_high) / 2 - this.temp_base, 0);
+      await this.update_dd_type(daily_dd, DDType.DAILY, date); // Update daily degree days
+    } catch (error) {}
   }
 
   /**
