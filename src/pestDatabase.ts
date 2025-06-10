@@ -17,9 +17,9 @@ export class PestDatabase {
   // Add methods to interact with the models as needed
 
   // Daily Model Methods
-  async update_daily(pest_name: string, degree_days: number) {
+  async update_daily(pest_name: string, date: Date, degree_days: number) {
     try {
-      await this.model_daily.update_daily(pest_name, null, degree_days);
+      await this.model_daily.update_daily(pest_name, date, degree_days);
     } catch (error) {
       console.error('Error occurred in update_daily:', error);
       throw error; // Rethrow to handle it in the caller
@@ -35,10 +35,27 @@ export class PestDatabase {
     }
   }
 
-  // Yearly Model Methods
-  async update_yearly_total_dd(pest_name: string, degree_days: number) {
+  async find_all_daily(year: number) {
     try {
-      await this.model_yearly.update_yearly_total_dd(pest_name, null, degree_days);
+      return await this.model_daily.find_all_daily(year);
+    } catch (error) {
+      console.error('Error occurred in find_all_daily:', error);
+      return []; // Return an empty array on error
+    }
+  }
+
+  async delete_daily_all_by_year(year: number) {
+    try {
+      await this.model_daily.delete_daily_all_by_year(year);
+    } catch (error) {
+      console.error('Error occurred in delete_daily_all_by_year:', error);
+    }
+  }
+
+  // Yearly Model Methods
+  async update_yearly_total_dd(pest_name: string, degree_days: number, date: Date) {
+    try {
+      await this.model_yearly.update_yearly_total_dd(pest_name, degree_days, date);
     } catch (error) {
       console.error('Error occurred in update_yearly_total_dd:', error);
       throw error; // Rethrow to handle it in the caller

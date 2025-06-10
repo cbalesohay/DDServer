@@ -23,6 +23,8 @@ export class WeatherStats {
   private day_rainfall = 0.0;
   private db: PestDatabase;
 
+  public available_data: Boolean = true;
+
   constructor(init_db: PestDatabase) {
     this.db = init_db;
   }
@@ -70,11 +72,14 @@ export class WeatherStats {
     const dateObj = date ? new Date(date) : new Date();
     const { start_utc, end_utc } = this.get_start_and_end_dates(dateObj);
 
+    this.available_data = false; // Set to false if an error occurs
+
     try {
       const results = await this.db.find_day_data(start_utc, end_utc);
 
       if (results.length !== 0) {
         // Sorts the data
+        this.available_data = true; // Set to true if data is available
         this.store_temperature(results);
         this.store_humidity(results);
         this.store_rain(results);

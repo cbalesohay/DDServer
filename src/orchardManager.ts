@@ -1,6 +1,7 @@
 import { Pest } from './pest.js';
 import { WeatherStats } from './weatherStats.js';
 import { PestDatabase } from './pestDatabase.js';
+import { DateTime } from 'luxon';
 
 export class OrchardManager {
   public db: PestDatabase;
@@ -127,10 +128,10 @@ export class OrchardManager {
       await this.db.update_yearly_dates(name, new_start_date, new_end_date);
       res.status(200).json({ message: 'Success' });
     } catch (error) {
-        console.error('Error occurred in set_new_date:', error);
-        res.status(500).json({ message: 'Error' });
+      console.error('Error occurred in set_new_date:', error);
+      res.status(500).json({ message: 'Error' });
     }
-    
+
     // Log the request
     console.log('------------------------------');
     console.log('Change Made');
@@ -148,41 +149,67 @@ export class OrchardManager {
    */
   async reset_year_data(req: any, res: any) {
     const year = parseInt(req.body.year, 10);
-    const startDate = new Date(year, 0, 1); // January 1st of the specified year
-    startDate.setHours(0, 0, 0, 0); // Set time to midnight
-
+    const start = DateTime.now();
     // Reset the data
     try {
       // Reset the data for each metric
       try {
+        await this.db.delete_daily_all_by_year(year);
         await this.db.zero_out_yearly_data(year);
       } catch (error) {
         console.error(`Error occurred in reset_year_data for zero_out_yearly_data:`, error);
       }
+
+      // Recalculate the daily degree days for each pest based on their respective date ranges
+      for (
+        const end_index_date = new Date(year, 11, 31), index_date = new Date(year, 0, 1), curr_date = new Date();
+        index_date <= (curr_date || end_index_date);
+        index_date.setDate(index_date.getDate() + 1)
+      ) {
+        try {
+          await this.weather.store_weather_data(index_date);
+        } catch (error) {
+          console.error('Error occurred while setting the index date:', error);
+        }
+
+        if (this.weather.available_data) {
+          for (const name of Object.keys(this.pests)) {
+            const pest = this.pests[name];
+            const pest_start = pest.get_start_date();
+            const pest_end = pest.get_end_date();
+
+            if (index_date >= pest_start && index_date <= pest_end) {
+              try {
+                pest.update_daily_temps(this.weather.get_low_temp(), this.weather.get_high_temp());
+                await pest.calculate_daily_degree_days(index_date);
+              } catch (error) {
+                console.error('Error occurred while calculating daily degree days:', error);
+              }
+            }
+          }
+        }
+
+      }
+
+      // Recalculate the running degree days for each pest
+      try {
+        const daily_data = await this.db.find_all_daily(year);
+        for (const name of Object.keys(this.pests)) {
+          this.pests[name].calculate_running_degree_days_data(daily_data);
+        }
+      } catch (error) {
+        console.error('Error occureed while calculating running degree days', error);
+      }
+
+      const end = DateTime.now();
+      const durationMs = end.toMillis() - start.toMillis();
+      console.log(`Total calculation time: ${(durationMs / 1000).toFixed(2)} seconds`);
 
       // Maybe loop through from begining of year to current day
       // But check if the pest is in range and if now then dont calc for that day for that pest
       // Maybe pass the entire day to each pest to calculate the daily degree days
       // Instead of pulling per pest
 
-      //   // Reset the data for the specified date range & recalculate
-      //   try {
-      //     await this.db.data_range_mass_reset(startDate, this.pests);
-      //   } catch (error) {
-      //     console.error('Error occurred in reset_year_data for dataRangeMassReset:', error);
-      //   }
-
-      //   for (const name of Object.keys(this.pests)) {
-      //     try {
-      //     } catch (error) {
-      //       console.error(`Error occurred in reset_year_data for calculate_running_degree_days for ${name}:`, error);
-      //     }
-      //     try {
-      //       await this.pests[name].calculate_running_degree_days();
-      //     } catch (error) {
-      //       console.error(`Error occurred in reset_year_data for calculate_running_degree_days for ${name}:`, error);
-      //     }
-      //   }
       res.status(200).json({ message: 'Success' });
     } catch (error) {
       console.error('Error occurred in reset_year_data:', error);

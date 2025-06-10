@@ -77,20 +77,34 @@ export class Pest {
    * @param type  The type of degree days to update (daily or yearly)
    * @description Function to update the degree days
    */
-  private update_dd_type(dd: number, type: DDType): void {
+  private async update_dd_type(dd: number, type: DDType, date: Date = new Date()): Promise<void> {
     this.validate_degree_days(dd);
     if (type === DDType.DAILY) {
       this.degree_days_total += dd - this.degree_days_daily; // Update total with the difference
       this.degree_days_daily = dd; // Update daily degree days
+      try {
+        await this.db.update_daily(this.name, date, this.degree_days_daily);
+      } catch (error) {
+        console.error('Error occurred in update_dd_type for update_daily:', error);
+        throw error; // Rethrow to handle it in the caller
+      }
     } else if (type === DDType.YEARLY) {
       this.degree_days_total = dd; // Update total degree days
       try {
-        this.db.update_yearly_total_dd(this.name, this.degree_days_total);
+        await this.db.update_yearly_total_dd(this.name, this.degree_days_total, date);
       } catch (error) {
         console.error('Error occurred in update_dd_type for update_yearly_total_dd:', error);
         throw error; // Rethrow to handle it in the caller
       }
     }
+  }
+
+  get_start_date() {
+    return this.degree_days_date_start;
+  }
+
+  get_end_date() {
+    return this.degree_days_date_end;
   }
 
   /**
@@ -107,41 +121,64 @@ export class Pest {
     this.day_temp_high = high > this.max_temp ? this.max_temp : high; // Ensure high does not exceed max_temp
   }
 
-  update_all_values(data: any) {
-    if (!data) {
-      throw new Error('Data is undefined or null');
-    }
-    this.degree_days_date_start = data['degree_days_date_start'];
-    this.degree_days_date_end = data['degree_days_date_end'];
-    this.degree_days_total = data['degree_days_total'];
-  }
-
   /**
    * @description Function to calculate running degree days
    * @returns For testing purposes, returns 0 if successful and -1 if there was an error
    */
+  // async calculate_running_degree_days() {
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0); // Set time to midnight
+
+  //   try {
+  //     const start = this.degree_days_date_start;
+  //     const end = this.degree_days_date_end;
+
+  //     const results = await this.db.find_daily_range(this.name, start, end <= today ? end : today);
+  //     const total_dd = results.reduce((sum: number, r: { degree_days: number }) => sum + r['degree_days'], 0);
+
+  //     if (total_dd != this.degree_days_total) this.update_dd_type(total_dd, DDType.YEARLY); // Update the total degree days if it has changed
+  //   } catch (error) {
+  //     console.error('Error occurred in calculate_running_degree_days:', error);
+  //     throw error; // Rethrow the error to be handled by the caller
+  //   }
+  // }
   async calculate_running_degree_days() {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set time to midnight
-    const local_date_string = today.toISOString().slice(0, 10);
 
     try {
       const start = this.degree_days_date_start;
       const end = this.degree_days_date_end;
 
-      if (today < start || today > end) {
-        console.warn(
-          `Today's date ${local_date_string} is outside the range of ${start.toISOString().slice(0, 10)} to ${end.toISOString().slice(0, 10)}`,
-        );
-        return; // Exit if today's date is outside the range
+      if (start > today) return; // No calculation needed for future ranges
+
+      const cappedEnd = end <= today ? end : today;
+      const results = await this.db.find_daily_range(this.name, start, cappedEnd);
+
+      const total_dd = results.reduce((sum: number, r: { degree_days?: number }) => sum + (r.degree_days ?? 0), 0);
+
+      if (total_dd !== this.degree_days_total) {
+        await this.update_dd_type(total_dd, DDType.YEARLY);
       }
-
-      const results = await this.db.find_daily_range(this.name, start, end <= today ? end : today);
-      const total_dd = results.reduce((sum: number, r: { degree_days: number }) => sum + r['degree_days'], 0);
-
-      if (total_dd != this.degree_days_total) this.update_dd_type(total_dd, DDType.YEARLY); // Update the total degree days if it has changed
     } catch (error) {
       console.error('Error occurred in calculate_running_degree_days:', error);
+      throw error;
+    }
+  }
+
+  async calculate_running_degree_days_data(data: any) {
+    if (!data) {
+      console.error('No data provided for calculate_running_degree_days_data');
+      return;
+    }
+
+    const filtered_data = data.filter((d: any) => d.name === this.name);
+    const total_dd = filtered_data.reduce((sum: number, r: { degree_days: number }) => sum + r['degree_days'], 0);
+    console.log(`Total degree days for ${this.name} from data: ${total_dd}`);
+    try {
+      if (total_dd != this.degree_days_total) await this.update_dd_type(total_dd, DDType.YEARLY); // Update the total degree days if it has changed
+    } catch (error) {
+      console.error('Error occurred in calculate_running_degree_days_data:', error);
       throw error; // Rethrow the error to be handled by the caller
     }
   }
@@ -153,17 +190,19 @@ export class Pest {
    *  ------------  - Base Temp
    *       2
    */
-  async calculate_daily_degree_days(date?: Date) {
-    if (this.day_temp_low < this.temp_base && this.day_temp_high < this.temp_base) {
-      console.warn(
-        `Daily temperatures for ${this.name} are out of bounds: Low: ${this.day_temp_low}, High: ${this.day_temp_high}, Base: ${this.temp_base}, Max: ${this.max_temp}`,
-      );
-      this.update_dd_type(0, DDType.DAILY); // If both temps are below base, set daily DD to 0
-      return;
-    }
+  async calculate_daily_degree_days(date: Date = new Date()) {
+    try {
+      if (this.day_temp_low < this.temp_base && this.day_temp_high < this.temp_base) {
+        console.warn(
+          `Daily temperatures for ${this.name} are out of bounds: Low: ${this.day_temp_low}, High: ${this.day_temp_high}, Base: ${this.temp_base}, Max: ${this.max_temp}`,
+        );
+        await this.update_dd_type(0, DDType.DAILY, date); // If both temps are below base, set daily DD to 0
+        return;
+      }
 
-    const daily_dd = Math.max((this.day_temp_low + this.day_temp_high) / 2 - this.temp_base, 0);
-    this.update_dd_type(daily_dd, DDType.DAILY); // Update daily degree days
+      const daily_dd = Math.max((this.day_temp_low + this.day_temp_high) / 2 - this.temp_base, 0);
+      await this.update_dd_type(daily_dd, DDType.DAILY, date); // Update daily degree days
+    } catch (error) {}
   }
 
   /**
