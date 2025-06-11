@@ -11,6 +11,9 @@ const soacYearlyDDSchema = new mongoose.Schema(
     end_date: String,
     total_degree_days: Number,
     last_input: String,
+    active_year: Number,
+    temp_base: Number,
+    temp_max: Number,
   },
   { versionKey: false },
 );
@@ -69,6 +72,15 @@ export class SoacYearlyDD {
       await this.model.updateMany({}, { $set: { total_degree_days: 0, last_input: date_str } }).exec();
     } catch (error) {
       console.error('Error occurred in zero_out_yearly_total_dd:', error);
+    }
+  }
+
+  async get_pests_by_year(year: number) {
+    try {
+      return await this.model.find({ active_year: year }).exec();;
+    } catch (error) {
+      console.error('Error occurred in get_pests_by_year:', error);
+      return []; // Return an empty array on error
     }
   }
 }

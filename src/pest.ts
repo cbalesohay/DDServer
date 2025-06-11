@@ -1,3 +1,4 @@
+import { start } from 'repl';
 import { PestDatabase } from './pestDatabase.js';
 
 enum DDType {
@@ -12,7 +13,7 @@ export class Pest {
   public current_year: number;
   public readonly name: string;
   public temp_base: number;
-  public max_temp: number;
+  public temp_max: number;
   public thresholds?: {
     peakMothFlight?: number;
     firstHatch?: number;
@@ -25,7 +26,6 @@ export class Pest {
 
   private day_temp_low: number = 0;
   private day_temp_high: number = 0;
-  private degree_days_curr: number = 0;
   private degree_days_daily: number = 0;
   private degree_days_total: number = 0;
   private degree_days_date_start: Date;
@@ -33,18 +33,22 @@ export class Pest {
 
   private db: PestDatabase;
 
-  constructor(name: string, temp_base: number, temp_high: number, init_db: PestDatabase) {
+  constructor(
+    name: string,
+    temp_base: number,
+    temp_max: number,
+    init_db: PestDatabase,
+    start_date: Date,
+    end_date: Date,
+  ) {
     this.name = name;
     this.temp_base = temp_base;
-    this.max_temp = temp_high;
+    this.temp_max = temp_max;
 
     this.current_year = new Date().getFullYear();
 
-    this.degree_days_date_start = new Date(this.current_year, 0, 1);
-    this.degree_days_date_start.setHours(0, 0, 0, 0);
-
-    this.degree_days_date_end = new Date(this.current_year, 11, 31);
-    this.degree_days_date_end.setHours(23, 59, 59, 999);
+    this.degree_days_date_start = new Date(start_date);
+    this.degree_days_date_end = new Date(end_date);
 
     this.db = init_db;
   }
@@ -125,30 +129,13 @@ export class Pest {
       throw new Error(`Invalid temperature values: low=${low}, high=${high}`);
     }
     this.day_temp_low = low;
-    this.day_temp_high = high > this.max_temp ? this.max_temp : high; // Ensure high does not exceed max_temp
+    this.day_temp_high = high > this.temp_max ? this.temp_max : high; // Ensure high does not exceed max_temp
   }
 
   /**
    * @description Function to calculate running degree days
    * @returns For testing purposes, returns 0 if successful and -1 if there was an error
    */
-  // async calculate_running_degree_days() {
-  //   const today = new Date();
-  //   today.setHours(0, 0, 0, 0); // Set time to midnight
-
-  //   try {
-  //     const start = this.degree_days_date_start;
-  //     const end = this.degree_days_date_end;
-
-  //     const results = await this.db.find_daily_range(this.name, start, end <= today ? end : today);
-  //     const total_dd = results.reduce((sum: number, r: { degree_days: number }) => sum + r['degree_days'], 0);
-
-  //     if (total_dd != this.degree_days_total) this.update_dd_type(total_dd, DDType.YEARLY); // Update the total degree days if it has changed
-  //   } catch (error) {
-  //     console.error('Error occurred in calculate_running_degree_days:', error);
-  //     throw error; // Rethrow the error to be handled by the caller
-  //   }
-  // }
   async calculate_running_degree_days() {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set time to midnight
@@ -201,7 +188,7 @@ export class Pest {
     try {
       if (this.day_temp_low < this.temp_base && this.day_temp_high < this.temp_base) {
         console.warn(
-          `Daily temperatures for ${this.name} are out of bounds: Low: ${this.day_temp_low}, High: ${this.day_temp_high}, Base: ${this.temp_base}, Max: ${this.max_temp}`,
+          `Daily temperatures for ${this.name} are out of bounds: Low: ${this.day_temp_low}, High: ${this.day_temp_high}, Base: ${this.temp_base}, Max: ${this.temp_max}`,
         );
         await this.update_dd_type(0, DDType.DAILY, date); // If both temps are below base, set daily DD to 0
         return;
@@ -220,7 +207,7 @@ export class Pest {
     return {
       name: this.name,
       temp_base: this.temp_base,
-      max_temp: this.max_temp,
+      temp_max: this.temp_max,
       thresholds: this.thresholds,
       current_year: this.current_year,
       degree_days_daily: this.degree_days_daily,
