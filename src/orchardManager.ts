@@ -15,21 +15,34 @@ export class OrchardManager {
 
     // Initialize the pests and weather stats
     this.weather = new WeatherStats(this.db);
-    this.pests = {
-      'Western Cherry': new Pest('Western Cherry', 41, 149, this.db),
-      'Leaf Rollers': new Pest('Leaf Rollers', 41, 85, this.db),
-      'Codling Moth': new Pest('Codling Moth', 50, 88, this.db),
-      'Apple Scab': new Pest('Apple Scab', 32, 149, this.db),
-    };
+    this.pests = {};
 
-    // Initialize the pests with their respective optional parameters
-    this.pests['Western Cherry'].thresholds = this.pests['Western Cherry'].thresholds || {};
-    this.pests['Western Cherry'].thresholds.firstFlight = 850;
-
+    // Initialize the pests and process data
     this.initialize();
   }
 
+
   private async initialize() {
+    // Get and create the pests for the current year
+    try {
+      const collection = await this.db.get_pests_by_year(new Date().getFullYear());
+      for (const pestData of collection) {
+        const pest = new Pest(
+          pestData.name,
+          Number(pestData.temp_base ?? 0),
+          Number(pestData.temp_max ?? 0),
+          this.db,
+          pestData.start_date,
+          pestData.end_date
+        );
+        this.pests[pest.name] = pest;
+      }
+    } catch (error) {
+      console.error('Error occurred while fetching pests:', error);
+      throw error; // Re-throw to handle it in the caller
+    }
+
+    // Process the data for the first time
     try {
       await this.process_data();
     } catch (error) {
@@ -37,7 +50,7 @@ export class OrchardManager {
       throw error; // Re-throw to handle it in the caller
     }
   }
-
+  
   day_temp_low() {
     return this.weather.get_low_temp();
   }

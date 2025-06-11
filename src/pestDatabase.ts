@@ -98,6 +98,15 @@ export class PestDatabase {
     }
   }
 
+  async get_pests_by_year(year: number) {
+    try {
+      return await this.model_yearly.get_pests_by_year(year);
+    } catch (error) {
+      console.error('Error occurred in get_pests_by_year:', error);
+      return []; // Return an empty array on error
+    }
+  }
+
   async data_range_mass_reset(start_date: Date, pests: Record<string, Pest>) {}
 
   // Total Model Methods
