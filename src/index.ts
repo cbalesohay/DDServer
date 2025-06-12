@@ -42,8 +42,11 @@ app.listen(PORT, () => {
   console.log(`Server running on EC2 port ${PORT}`);
 });
 
-app.get('/send-fast', asyncHandler(orchard.send_fast_data)); // Sends most updated data
+// app.get('/send-fast', asyncHandler(orchard.send_fast_data)); // Sends most updated data
+app.get('/send-fast', orchard.send_fast_data); // Sends most updated data
 app.post('/new-date', asyncHandler(orchard.set_new_date.bind(orchard))); // Sets new date for the metric
+app.post('/add-metric', asyncHandler(orchard.add_metric.bind(orchard))); // Adds a new pest to the metric
+app.post('/remove-metric', asyncHandler(orchard.remove_metric.bind(orchard))); // Removes a pest from the metric
 app.post('/re-calc-data', asyncHandler(orchard.reset_year_data.bind(orchard))); // Resets the year data for the metric
 app.get('/health', (req: any, res: any) => {
   res.status(200).send('OK'); // Health check route

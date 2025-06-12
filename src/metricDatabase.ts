@@ -1,9 +1,9 @@
 import { SoacDailyDD } from './models/SoacDailyDD.js';
 import { SoacYearlyDD } from './models/SoacYearlyDD.js';
 import { SoacTotalDD } from './models/SoacTotalDD.js';
-import { Pest } from './pest.js';
+import { Metric } from './metric.js';
 
-export class PestDatabase {
+export class MetricDatabase {
   private model_daily: any;
   private model_yearly: any;
   private model_total: any;
@@ -14,21 +14,19 @@ export class PestDatabase {
     this.model_total = new SoacTotalDD();
   }
 
-  // Add methods to interact with the models as needed
-
   // Daily Model Methods
-  async update_daily(pest_name: string, date: Date, degree_days: number) {
+  async update_daily(metric_name: string, date: Date, degree_days: number) {
     try {
-      await this.model_daily.update_daily(pest_name, date, degree_days);
+      await this.model_daily.update_daily(metric_name, date, degree_days);
     } catch (error) {
       console.error('Error occurred in update_daily:', error);
       throw error; // Rethrow to handle it in the caller
     }
   }
 
-  async find_daily_range(pest_name: string, start_date: Date, end_date: Date) {
+  async find_daily_range(metric_name: string, start_date: Date, end_date: Date) {
     try {
-      return await this.model_daily.find_daily_range(pest_name, start_date, end_date);
+      return await this.model_daily.find_daily_range(metric_name, start_date, end_date);
     } catch (error) {
       console.error('Error occurred in find_daily_range:', error);
       return []; // Return an empty array on error
@@ -52,28 +50,37 @@ export class PestDatabase {
     }
   }
 
-  // Yearly Model Methods
-  async update_yearly_total_dd(pest_name: string, degree_days: number, date: Date) {
+  async delete_daily(name: string, year: number) {
     try {
-      await this.model_yearly.update_yearly_total_dd(pest_name, degree_days, date);
+      await this.model_daily.delete_daily(name, year);
+    } catch (error) {
+      console.error('Error occurred in delete_daily_metric:', error);
+      throw error; // Rethrow to handle it in the caller
+    }
+  }
+
+  // Yearly Model Methods
+  async update_yearly_total_dd(metric_name: string, degree_days: number, date: Date) {
+    try {
+      await this.model_yearly.update_yearly_total_dd(metric_name, degree_days, date);
     } catch (error) {
       console.error('Error occurred in update_yearly_total_dd:', error);
       throw error; // Rethrow to handle it in the caller
     }
   }
 
-  async update_yearly_dates(pest_name: string, start_date: Date | null, end_date: Date | null) {
+  async update_yearly_dates(metric_name: string, start_date: Date | null, end_date: Date | null) {
     try {
-      await this.model_yearly.update_dates(pest_name, start_date, end_date);
+      await this.model_yearly.update_dates(metric_name, start_date, end_date);
     } catch (error) {
       console.error('Error occurred in update_yearly_dates:', error);
       throw error; // Rethrow to handle it in the caller
     }
   }
 
-  async find_yearly(pest_name: string) {
+  async find_yearly(metric_name: string) {
     try {
-      return await this.model_yearly.find_yearly(pest_name);
+      return await this.model_yearly.find_yearly(metric_name);
     } catch (error) {
       console.error('Error occurred in find_yearly:', error);
       return null; // Return null on error
@@ -98,16 +105,43 @@ export class PestDatabase {
     }
   }
 
-  async get_pests_by_year(year: number) {
+  async get_metrics_by_year(year: number) {
     try {
-      return await this.model_yearly.get_pests_by_year(year);
+      return await this.model_yearly.get_metrics_by_year(year);
     } catch (error) {
-      console.error('Error occurred in get_pests_by_year:', error);
+      console.error('Error occurred in get_metrics_by_year:', error);
       return []; // Return an empty array on error
     }
   }
 
-  async data_range_mass_reset(start_date: Date, pests: Record<string, Pest>) {}
+  async add_metric(data: {
+    name: string;
+    type: string;
+    start_date: Date | null;
+    end_date: Date | null;
+    total_degree_days: number;
+    active_year: number;
+    temp_base: number;
+    temp_max: number;
+  }) {
+    try {
+      await this.model_yearly.add_metric(data);
+    } catch (error) {
+      console.error('Error occurred in add_metric:', error);
+      throw error; // Rethrow to handle it in the caller
+    }
+  }
+
+  async delete_yearly_metric(name: string, year: number) {
+    try {
+      await this.model_yearly.delete_yearly_metric(name, year);
+    } catch (error) {
+      console.error('Error occurred in delete_metric:', error);
+      throw error; // Rethrow to handle it in the caller
+    }
+  }
+
+  async data_range_mass_reset(start_date: Date, metrics: Record<string, Metric>) {}
 
   // Total Model Methods
   async find_day_data(start_date: Date, end_date: Date) {
