@@ -89,9 +89,22 @@ export class SoacDailyDD {
     }
   }
 
-  async delete_daily(name: string): Promise<void> {
+  async delete_daily(name: string, year: number): Promise<void> {
+    if (!name || !year) {
+      console.error('Name and year must be provided.');
+      return;
+    }
+    const start_date_str = `${year}-01-01`;
+    const end_date_str = `${year}-12-31`;
+    const doc = {
+      name: name,
+      date: {
+        $gte: start_date_str,
+        $lte: end_date_str,
+      },
+    };
     try {
-      await this.model.deleteMany({ name: name }).exec();
+      await this.model.deleteMany(doc).exec();
     } catch (error) {
       console.error('Error occurred in delete_daily:', error);
     }

@@ -1,4 +1,4 @@
-import { PestDatabase } from './pestDatabase.js';
+import { MetricDatabase } from './metricDatabase.js';
 import { DateTime } from 'luxon';
 
 interface WeatherReading {
@@ -21,11 +21,11 @@ export class WeatherStats {
   private curr_humidity = 0.0;
   private total_rainfall = 0.0;
   private day_rainfall = 0.0;
-  private db: PestDatabase;
+  private db: MetricDatabase;
 
   public available_data: Boolean = true;
 
-  constructor(init_db: PestDatabase) {
+  constructor(init_db: MetricDatabase) {
     this.db = init_db;
   }
 

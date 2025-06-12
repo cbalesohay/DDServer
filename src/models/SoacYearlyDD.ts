@@ -1,12 +1,11 @@
 import { createRequire } from 'module';
-import { DateTime } from 'luxon';
-import { start } from 'repl';
 const requires = createRequire(import.meta.url);
 const mongoose = requires('mongoose');
 
 const soacYearlyDDSchema = new mongoose.Schema(
   {
     name: String,
+    type: String,
     start_date: String,
     end_date: String,
     total_degree_days: Number,
@@ -75,12 +74,66 @@ export class SoacYearlyDD {
     }
   }
 
-  async get_pests_by_year(year: number) {
+  async get_metrics_by_year(year: number) {
     try {
-      return await this.model.find({ active_year: year }).exec();;
+      return await this.model.find({ active_year: year });
     } catch (error) {
-      console.error('Error occurred in get_pests_by_year:', error);
+      console.error('Error occurred in get_metric_by_year:', error);
       return []; // Return an empty array on error
+    }
+  }
+
+  async add_metric(data: {
+    name: string;
+    type: string;
+    start_date: Date | null;
+    end_date: Date | null;
+    total_degree_days: number;
+    active_year: number;
+    temp_base: number;
+    temp_max: number;
+  }): Promise<void> {
+    const { name, type, start_date, end_date, total_degree_days, active_year, temp_base, temp_max } = data;
+
+    if (!name) {
+      console.error('Name must be provided.');
+      return;
+    }
+
+    const current_year = new Date().getFullYear();
+
+    const doc = {
+      name,
+      type,
+      start_date: start_date
+        ? start_date.toISOString().split('T')[0]
+        : new Date(current_year, 0, 1).toISOString().split('T')[0],
+      end_date: end_date
+        ? end_date.toISOString().split('T')[0]
+        : new Date(current_year, 11, 31).toISOString().split('T')[0],
+      total_degree_days,
+      active_year,
+      temp_base,
+      temp_max,
+    };
+
+    try {
+      await this.model.create(doc);
+    } catch (error) {
+      console.error('Error occurred in add_metric:', error);
+    }
+  }
+
+  async delete_yearly_metric(name: string, year: number): Promise<void> {
+    if (!name || !year) {
+      console.error('Name and year must be provided.');
+      return;
+    }
+
+    try {
+      await this.model.deleteOne({ name: name, active_year: year });
+    } catch (error) {
+      console.error('Error occurred in delete_metric:', error);
     }
   }
 }

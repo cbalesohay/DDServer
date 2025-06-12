@@ -1,5 +1,5 @@
-import { start } from 'repl';
-import { PestDatabase } from './pestDatabase.js';
+import { MetricDatabase } from './metricDatabase.js';
+
 
 enum DDType {
   DAILY = 'daily',
@@ -7,11 +7,12 @@ enum DDType {
 }
 
 /**
- * @description Class to represent a pest
+ * @description Class to represent a Metric
  */
-export class Pest {
+export class Metric {
   public current_year: number;
   public readonly name: string;
+  public type: string;
   public temp_base: number;
   public temp_max: number;
   public thresholds?: {
@@ -31,24 +32,29 @@ export class Pest {
   private degree_days_date_start: Date;
   private degree_days_date_end: Date;
 
-  private db: PestDatabase;
+  private db: MetricDatabase;
 
   constructor(
     name: string,
+    type: string,
     temp_base: number,
     temp_max: number,
-    init_db: PestDatabase,
+    init_db: MetricDatabase,
     start_date: Date,
     end_date: Date,
   ) {
     this.name = name;
+    this.type = type;
     this.temp_base = temp_base;
     this.temp_max = temp_max;
 
     this.current_year = new Date().getFullYear();
 
     this.degree_days_date_start = new Date(start_date);
-    this.degree_days_date_end = new Date(end_date);
+    this.degree_days_date_start.setHours(0, 0, 0, 0); // Ensure start of the day
+
+    this.degree_days_date_end = new Date(end_date); // Set to end of the day
+    this.degree_days_date_end.setHours(23, 59, 59, 999); // Ensure end date is set to the end of the day
 
     this.db = init_db;
   }
@@ -206,6 +212,7 @@ export class Pest {
   toJSON() {
     return {
       name: this.name,
+      type: this.type,
       temp_base: this.temp_base,
       temp_max: this.temp_max,
       thresholds: this.thresholds,
