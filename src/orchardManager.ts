@@ -73,20 +73,6 @@ export class OrchardManager {
     });
   };
 
-  // send_processed_data = async (req: any, res: any) => {
-  //   try {
-  //     await this.process_data(); // Process the data
-  //   } catch (error) {
-  //     console.error('Error occurred in send_processed_data:', error);
-  //     return {
-  //       message: 'Error processing data',
-  //       data: null,
-  //     };
-  //   }
-
-  //   this.send_fast_data(req, res); // Send the fast data response
-  // };
-
   async process_data(date: Date = new Date()) {
     try {
       await this.weather.store_weather_data(); // Get weather data

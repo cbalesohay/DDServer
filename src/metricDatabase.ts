@@ -14,8 +14,6 @@ export class MetricDatabase {
     this.model_total = new SoacTotalDD();
   }
 
-  // Add methods to interact with the models as needed
-
   // Daily Model Methods
   async update_daily(metric_name: string, date: Date, degree_days: number) {
     try {
