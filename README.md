@@ -37,3 +37,27 @@ Locations to change tailored metrics:
 
 - Inside `metric.ts` and `weatherStats.ts` classes you can alter the data points and metrics you want to track
 - Inside `createMetricData.ts` you can initialize your metric class instances with specific data
+
+
+
+## Layout of Backend
+
+### Endpoints
+/send-fast
+ - This endpoint is a get request that will return JSON with the most current and up-to-date information for all pest, crop, and weather. Stuctured as /data/metrics/.. /data/weather/..
+
+/new-date
+ - This endpoint is a post requests that accepts a body with the parameters {name, startDate (optional), endDate (optional)}. The startDate and endDate are optional but at least one must be present to change a date, but could also accept both at the same time.
+
+/add-metric
+ - This endpoint is a post request that accepts a body with the parameters {name, type, start_date, end_date, total_degree_days, active_year, temp_base, temp_max}
+
+/remove-metric
+
+/re-calc-data
+
+### Managing Class
+
+### Core classes
+
+### Database connection
