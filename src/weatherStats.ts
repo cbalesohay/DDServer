@@ -1,3 +1,5 @@
+// Total lines of code: 200
+
 import { MetricDatabase } from './metricDatabase.js';
 import { DateTime } from 'luxon';
 

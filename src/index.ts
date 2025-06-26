@@ -1,3 +1,5 @@
+// Total lines of code: 63
+
 const myRequire = createRequire(import.meta.url);
 myRequire('dotenv').config();
 const express = myRequire('express');
@@ -42,7 +44,6 @@ app.listen(PORT, () => {
   console.log(`Server running on EC2 port ${PORT}`);
 });
 
-// app.get('/send-fast', asyncHandler(orchard.send_fast_data)); // Sends most updated data
 app.get('/send-fast', orchard.send_fast_data); // Sends most updated data
 app.post('/new-date', asyncHandler(orchard.set_new_date.bind(orchard))); // Sets new date for the metric
 app.post('/add-metric', asyncHandler(orchard.add_metric.bind(orchard))); // Adds a new pest to the metric

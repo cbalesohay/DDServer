@@ -1,3 +1,5 @@
+# Total lines of code: 27
+
 ARG NODE_VERSION=22.16.0
 FROM node:${NODE_VERSION}-alpine
 

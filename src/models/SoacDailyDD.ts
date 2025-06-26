@@ -1,3 +1,5 @@
+// Total lines of code: 158
+
 import { createRequire } from 'module';
 const requires = createRequire(import.meta.url);
 const mongoose = requires('mongoose');

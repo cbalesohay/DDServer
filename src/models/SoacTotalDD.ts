@@ -1,3 +1,5 @@
+// Toal lines of code: 66
+
 import { createRequire } from 'module';
 const requires = createRequire(import.meta.url);
 const mongoose = requires('mongoose');
@@ -62,6 +64,3 @@ export class SoacTotalDD {
       }
     }
 }
-
-
-

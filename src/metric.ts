@@ -1,5 +1,6 @@
-import { MetricDatabase } from './metricDatabase.js';
+// Total lines of code: 227
 
+import { MetricDatabase } from './metricDatabase.js';
 
 enum DDType {
   DAILY = 'daily',

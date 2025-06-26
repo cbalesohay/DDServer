@@ -1,3 +1,5 @@
+// Total lines of code: 157
+
 import { SoacDailyDD } from './models/SoacDailyDD.js';
 import { SoacYearlyDD } from './models/SoacYearlyDD.js';
 import { SoacTotalDD } from './models/SoacTotalDD.js';

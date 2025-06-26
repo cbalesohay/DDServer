@@ -1,3 +1,5 @@
+// Toal lines of code: 301
+
 import { Metric } from './metric.js';
 import { WeatherStats } from './weatherStats.js';
 import { MetricDatabase } from './metricDatabase.js';
