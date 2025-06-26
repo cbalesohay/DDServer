@@ -88,4 +88,4 @@ The orchard manager class is used to track all of the backends data. It holds th
 4. User satisfaction rating: N/A
 
 ### Backend Layout Visual
-<img src="https://github.com/user-attachments/assets/f13517ec-82ff-43b9-8ada-d8b30507d126" width="250" height="550" title="Backend Layout Visual" alt="Backend Layout Visual"/>
+<img src="https://github.com/user-attachments/assets/f13517ec-82ff-43b9-8ada-d8b30507d126" width="450" height="650" title="Backend Layout Visual" alt="Backend Layout Visual"/>
