@@ -86,3 +86,6 @@ The orchard manager class is used to track all of the backends data. It holds th
 2. Total new lines of code: 1,394
 3. Number of code files needed: 9 typescript files, 3 docker files, 1 .env file
 4. User satisfaction rating: N/A
+
+### Backend Layout Visual
+![Orchard Layout Visulization-18](https://github.com/user-attachments/assets/f13517ec-82ff-43b9-8ada-d8b30507d126)
