@@ -39,22 +39,61 @@ Locations to change tailored metrics:
 The endpoints are located inside of the index.ts file, starting on line 47. This is the centralized location that the client end of the application will connect to the backend logic.
 
 #### /send-fast
- - This endpoint is a get request that will return JSON with the most current and up-to-date information for all pest, crop, and weather. Stuctured as /data/metrics/.. /data/weather/..
+ - This endpoint is a get request that will return JSON with the most current and up-to-date information for all pest, crop, and weather. Structured as /data/metrics/.. /data/weather/..
+
+ GET /send-fast
 
 #### /new-date
- - This endpoint is a post requests that accepts a body with the parameters {name, startDate (optional), endDate (optional)}. The startDate and endDate are optional but at least one must be present to change a date, but could also accept both at the same time.
+ - This endpoint is a post request that accepts a body with the parameters {name, startDate (optional), endDate (optional)}. The startDate and endDate are optional but at least one must be present to change a date, but could also accept both at the same time.
+
+ POST /new-date
+ Example:
+{
+  "name": "ExampleMetric",
+  "startDate": "2024-03-01",
+  "endDate": "2024-10-15"
+}
 
 #### /add-metric
- - This endpoint is a post request that accepts a body with the parameters {name, type, start_date, end_date, total_degree_days, active_year, temp_base, temp_max}
+ - This endpoint lets you add a new metric to the database. It is a post request that accepts the parameters of {name, type, start_date, end_date, total_degree_days, active_year, temp_base, temp_max}.
+
+ POST /add-metric
+ Example:
+{
+  "name": "ExampleMetric",
+  "type": "pest",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31",
+  "total_degree_days": 0,
+  "active_year": 2024,
+  "temp_base": 50,
+  "temp_max": 86
+}
 
 #### /remove-metric
- - This endpoint will remove the metric from the database for that specific year. This action cannot be undone, and you will have to re add the metric and the new calculations will be made for that metric.
+ - This endpoint will remove the metric from the database for that specific year. This action cannot be undone, and you will have to re-add the metric and the new calculations will be made for that metric.
+
+ POST /remove-metric
+ Example:
+{
+    "name": "ExampleMetric",
+    "year": 2025
+}
+
 
 #### /re-calc-data
- - This endpoint will re-calculate all metric calculations based off the data availible in the database. This will be helpful for if data is altered or added into the database. This could happen if the weather data is not reported and the data needs to be added in at a later date.
+ - This endpoint will re-calculate all metric calculations based off the data available in the database. This will be helpful for if data is altered or added into the database. This could happen if the weather data is not reported and the data needs to be added in at a later date.
+
+ POST /re-calc-data
+ Example:
+{
+    "year": 2025
+}
 
 #### /health
  - This endpoint is used for the backend health checks. A status 200 and message of "OK" will be sent if backend is functional.
+
+ GET /health
 
 ### Managing Class
 orchardManager.ts
@@ -63,7 +102,7 @@ The orchard manager class is used to track all of the backends data. It holds th
 
 ### Core classes
 #### Metric Database
- - This file has all of the schemas used in the application. In order to use your own database for this backend, you need to change the names to accomodate your own mongoDB names and schema requirements. This file has all mongo connection functions, this makes it easy to only change the schemas and still have the backend work regardless of the database logic you want to change or incorperate. The functions are seperated by Daily model methods, Yearly model methods, and Total model methods, for ease of tracking. The schemas are only routed through this database class in order to streamline and maintain the backend.
+ - This file has all of the schemas used in the application. In order to use your own database for this backend, you need to change the names to accommodate your own mongoDB names and schema requirements. This file has all mongo connection functions, this makes it easy to only change the schemas and still have the backend work regardless of the database logic you want to change or incorporate. The functions are separated by Daily model methods, Yearly model methods, and Total model methods, for ease of tracking. The schemas are only routed through this database class in order to streamline and maintain the backend.
 
 #### Weather Stats
  - This class is used for tracking the weather stats for the program. It also has the ability to make database calls to change and update information.
@@ -76,7 +115,7 @@ The orchard manager class is used to track all of the backends data. It holds th
  - This file houses the schema for the Soac Daily DD collection. This collection is very simple in the fact that it tracks the name, date, and the amount of degree days accumulated for that day. This file also houses all of the logic related to altering, adding, or deleting data from this collection.
 
 #### Soac Total DD
- - This file houses the schema used in the Soac Total DD collection. This is specifically the mass data collected from the weather sensors in the orchard, hense the total name. The schema has the ability to access all the schema metrics but only accesses a few of them to make necessary calculations. This file also houses all of the related logic for pulling data within a range of dates.
+ - This file houses the schema used in the Soac Total DD collection. This is specifically the mass data collected from the weather sensors in the orchard, hence the total name. The schema has the ability to access all the schema metrics but only accesses a few of them to make necessary calculations. This file also houses all of the related logic for pulling data within a range of dates.
 
 #### Soac Yearly DD
  - This file houses the schema used in the Soac Yearly DD collection. This is specifically the yearly data used to store the metric data. This file also houses all the logic related to altering, adding, or deleting data from this collection.
