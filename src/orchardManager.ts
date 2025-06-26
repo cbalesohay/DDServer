@@ -1,3 +1,4 @@
+// Toal lines of code: 343
 import { Metric } from './metric.js';
 import { WeatherStats } from './weatherStats.js';
 import { MetricDatabase } from './metricDatabase.js';
@@ -21,6 +22,9 @@ export class OrchardManager {
     this.initialize();
   }
 
+  /**
+   * @description Initializes the OrchardManager by fetching metrics for the current year and processing the data.
+   */
   private async initialize() {
     // Get and create the metrics for the current year
     try {
@@ -51,18 +55,40 @@ export class OrchardManager {
     }
   }
 
+  /**
+   * @description Function to get the current low temperature for the day
+   * 
+   * @returns The current low temperature for the day
+   */
   day_temp_low() {
     return this.weather.get_low_temp();
   }
 
+  /**
+   * @description Function to get the current high temperature for the day
+   * 
+   * @returns The current high temperature for the day
+   */
   day_temp_high() {
     return this.weather.get_high_temp();
   }
 
+  /**
+   * @description Function to get the current temperature for the day
+   * 
+   * @returns The current temperature for the day
+   */
   day_temp_curr() {
     return this.weather.get_curr_temp();
   }
 
+  /**
+   * @description Function to send fast data response
+   * 
+   * @param req The request object
+   * @param res The response object
+   * @returns A JSON response with the weather and metrics data
+   */
   send_fast_data = (req: any, res: any) => {
     res.status(200).json({
       message: 'Success',
@@ -73,6 +99,11 @@ export class OrchardManager {
     });
   };
 
+  /**
+   * @description Function to process the data for the metrics and weather
+   * 
+   * @param date The date for which to process the data, defaults to the current date
+   */
   async process_data(date: Date = new Date()) {
     try {
       await this.weather.store_weather_data(); // Get weather data
@@ -109,12 +140,11 @@ export class OrchardManager {
   }
 
   /**
+   * @description Function to set the new date for the metric
    *
    * @param req The request object
    * @param res The response object
    * @returns The response object
-   * @description Function to set the new date for the metric
-   * @throws Error if there is an error setting the new date
    */
   async set_new_date(req: any, res: any) {
     const name: string = req.body.name as string;
@@ -164,10 +194,10 @@ export class OrchardManager {
   }
 
   /**
+   * @description Function to reset the year data for the metric
    *
    * @param req The request object
    * @param res The response object
-   * @description Function to reset the year data for the metric
    */
   async reset_year_data(req: any, res: any) {
     const year = parseInt(req.body.year, 10);
@@ -238,6 +268,13 @@ export class OrchardManager {
     }
   }
 
+  /**
+   * @description Function to add a new metric
+   * 
+   * @param req The request object containing the metric data
+   * @param res The response object
+   * @returns The response object with the status of the operation
+   */
   async add_metric(req: any, res: any) {
     const { name, type, start_date, end_date, total_degree_days, active_year, temp_base, temp_max } = req.body;
 
@@ -268,6 +305,13 @@ export class OrchardManager {
     }
   }
 
+  /**
+   * @description Function to remove a metric
+   * 
+   * @param req The request object containing the metric name and year
+   * @param res The response object
+   * @returns The response object with the status of the operation
+   */
   async remove_metric(req: any, res: any) {
     const name = req.body.name as string;
     const year = parseInt(req.body.year, 10);

@@ -1,5 +1,5 @@
+// Total lines of code: 256
 import { MetricDatabase } from './metricDatabase.js';
-
 
 enum DDType {
   DAILY = 'daily',
@@ -43,23 +43,24 @@ export class Metric {
     start_date: Date,
     end_date: Date,
   ) {
-    this.name = name;
-    this.type = type;
-    this.temp_base = temp_base;
-    this.temp_max = temp_max;
+    this.name = name; // Set name of metric
+    this.type = type; // Set type of metric
+    this.temp_base = temp_base; // Set base temperature
+    this.temp_max = temp_max; // Set maximum temperature
 
-    this.current_year = new Date().getFullYear();
+    this.current_year = new Date().getFullYear(); // Set current year
 
-    this.degree_days_date_start = new Date(start_date);
+    this.degree_days_date_start = new Date(start_date); // Set to start of the day
     this.degree_days_date_start.setHours(0, 0, 0, 0); // Ensure start of the day
 
     this.degree_days_date_end = new Date(end_date); // Set to end of the day
     this.degree_days_date_end.setHours(23, 59, 59, 999); // Ensure end date is set to the end of the day
 
-    this.db = init_db;
+    this.db = init_db; // Initialize the database connection
   }
 
   /**
+   * @description Function to validate the temperature
    *
    * @param temp The temperature to validate
    * @description Function to validate the temperature
@@ -71,9 +72,9 @@ export class Metric {
   }
 
   /**
+   * @description Function to validate the degree days
    *
    * @param dd The degree days to validate
-   * @description Function to validate the degree days
    * @returns  true if the degree days are valid, false otherwise
    */
   private validate_degree_days(dd: number): boolean {
@@ -82,10 +83,10 @@ export class Metric {
   }
 
   /**
+   * @description Function to update the degree days
    *
    * @param dd The degree days to update
    * @param type  The type of degree days to update (daily or yearly)
-   * @description Function to update the degree days
    */
   private async update_dd_type(dd: number, type: DDType, date: Date = new Date()): Promise<void> {
     this.validate_degree_days(dd);
@@ -109,26 +110,47 @@ export class Metric {
     }
   }
 
+  /**
+   * @description Function to get the start date of the degree days
+   * 
+   * @returns The start date of the degree days
+   */
   get_start_date() {
     return this.degree_days_date_start;
   }
 
+  /**
+   * @description Function to get the end date of the degree days
+   * 
+   * @returns The end date of the degree days
+   */
   get_end_date() {
     return this.degree_days_date_end;
   }
 
+  /**
+   * @description Function to update the start date of the degree days
+   * 
+   * @param date The date to update the start or end date
+   */
   update_start_date(date: Date) {
     this.degree_days_date_start = date;
   }
+
+  /**
+   * @description Function to update the end date of the degree days
+   * 
+   * @param date The date to update the end date
+   */
   update_end_date(date: Date) {
     this.degree_days_date_end = date;
   }
 
   /**
+   * @description Function to update the daily temperatures
    *
    * @param low The low temperature for the day
    * @param high The high temperature for the day
-   * @description Function to update the daily temperatures
    */
   update_daily_temps(low: number, high: number) {
     if (!this.validate_temp(low) || !this.validate_temp(high)) {
@@ -140,6 +162,7 @@ export class Metric {
 
   /**
    * @description Function to calculate running degree days
+   * 
    * @returns For testing purposes, returns 0 if successful and -1 if there was an error
    */
   async calculate_running_degree_days() {
@@ -166,6 +189,12 @@ export class Metric {
     }
   }
 
+  /**
+   * @description Function to calculate the total degree days from the provided data
+   * 
+   * @param data The data to calculate running degree days from
+   * @returns This function calculates the total degree days from the provided data
+   */
   async calculate_running_degree_days_data(data: any) {
     if (!data) {
       console.error('No data provided for calculate_running_degree_days_data');
@@ -206,6 +235,7 @@ export class Metric {
   }
 
   /**
+   * @description Function to convert the metric to JSON format
    *
    * @returns relevant data
    */

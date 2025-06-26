@@ -1,3 +1,4 @@
+// Toal lines of code: 73
 import { createRequire } from 'module';
 const requires = createRequire(import.meta.url);
 const mongoose = requires('mongoose');
@@ -35,6 +36,14 @@ export class SoacTotalDD {
     constructor() {
       this.model = soacTotalDDModel;
     }
+
+    /**
+     * @description This function finds the daily degree days for a given date range.
+     * 
+     * @param start_date_utc The start date in UTC format
+     * @param end_date_utc The end date in UTC format
+     * @returns The daily degree days for the specified date range, or null if not found.
+     */
     async find_day_data(start_date_utc: Date, end_date_utc: Date) {
       try {
         const TIMES = { $gte: start_date_utc.toISOString().slice(0, 26), $lt: end_date_utc.toISOString().slice(0, 26) };
@@ -62,6 +71,3 @@ export class SoacTotalDD {
       }
     }
 }
-
-
-
