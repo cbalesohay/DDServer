@@ -47,7 +47,6 @@ The endpoints are located inside of the index.ts file, starting on line 47. This
  - This endpoint is a post request that accepts a body with the parameters {name, startDate (optional), endDate (optional)}. The startDate and endDate are optional but at least one must be present to change a date, but could also accept both at the same time.
 
  POST /new-date
- Example:
 {
   "name": "ExampleMetric",
   "startDate": "2024-03-01",
@@ -58,7 +57,6 @@ The endpoints are located inside of the index.ts file, starting on line 47. This
  - This endpoint lets you add a new metric to the database. It is a post request that accepts the parameters of {name, type, start_date, end_date, total_degree_days, active_year, temp_base, temp_max}.
 
  POST /add-metric
- Example:
 {
   "name": "ExampleMetric",
   "type": "pest",
@@ -74,7 +72,6 @@ The endpoints are located inside of the index.ts file, starting on line 47. This
  - This endpoint will remove the metric from the database for that specific year. This action cannot be undone, and you will have to re-add the metric and the new calculations will be made for that metric.
 
  POST /remove-metric
- Example:
 {
     "name": "ExampleMetric",
     "year": 2025
@@ -85,7 +82,6 @@ The endpoints are located inside of the index.ts file, starting on line 47. This
  - This endpoint will re-calculate all metric calculations based off the data available in the database. This will be helpful for if data is altered or added into the database. This could happen if the weather data is not reported and the data needs to be added in at a later date.
 
  POST /re-calc-data
- Example:
 {
     "year": 2025
 }
