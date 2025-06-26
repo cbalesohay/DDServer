@@ -1,5 +1,4 @@
-# Total lines of code: 13
-
+# Total lines of code: 12
 services:
   server:
     build:

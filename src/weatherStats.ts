@@ -1,5 +1,4 @@
-// Total lines of code: 200
-
+// Total lines of code: 220
 import { MetricDatabase } from './metricDatabase.js';
 import { DateTime } from 'luxon';
 
@@ -32,6 +31,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description Function to get the current low temperature
    *
    * @returns The current low temperature
    */
@@ -40,6 +40,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description Function to get the current high temperature
    *
    * @returns The current high temperature
    */
@@ -47,10 +48,21 @@ export class WeatherStats {
     return this.day_high;
   }
 
+  /**
+   * @description Function to get the current average temperature
+   * 
+   * @returns The current average temperature
+   */
   get_curr_temp() {
     return this.curr_temp;
   }
 
+  /**
+   * @description Function to get the start and end dates for the weather data
+   * 
+   * @param today The date to get the start and end dates for
+   * @returns The start and end dates in UTC format
+   */
   get_start_and_end_dates(today: Date): { start_utc: Date; end_utc: Date } {
     const startLocal = DateTime.fromJSDate(today, { zone: 'America/Los_Angeles' }).startOf('day');
     const nowLocal = DateTime.now().setZone('America/Los_Angeles');
@@ -65,9 +77,9 @@ export class WeatherStats {
   }
 
   /**
+   * @description Function to store the weather data
    *
    * @param users The data to store the weather data for
-   * @description Function to store the weather data
    */
   // async store_weather_data(model: any, date?: Date) {
   async store_weather_data(date?: Date) {
@@ -92,6 +104,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description This function calculates the total rainfall and daily rainfall
    *
    * @param users The data to store the rainfall for
    */
@@ -103,6 +116,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description This function calculates the current humidity
    *
    * @param users The data to store the humidity for
    */
@@ -112,6 +126,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description This function calculates the high, low, and average temperature for the day
    *
    * @param users The data to store the temperature for
    */
@@ -127,6 +142,8 @@ export class WeatherStats {
   }
 
   /**
+   * @description Converts Celcius to Fahrenheit
+   * 9/5 * C + 32 = F
    *
    * @param celciusTemp The temperature in celcius to convert to fahrenheit
    * @returns The temperature in fahrenheit
@@ -136,6 +153,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description Converts millimeters to inches
    *
    * @param millimeters The amount of millimeters to convert to inches
    * @returns The amount of inches
@@ -146,6 +164,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description This function sorts the data by the specified metric and calculates the high, low, average, and current temperature
    *
    * @param results The data from the database
    * @param metric The metric to sort by
@@ -181,6 +200,7 @@ export class WeatherStats {
   }
 
   /**
+   * @description Function to convert the weather stats to JSON format
    *
    * @returns relevant data
    */

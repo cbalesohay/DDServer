@@ -1,5 +1,4 @@
-// Total lines of code: 141
-
+// Total lines of code: 176
 import { createRequire } from 'module';
 const requires = createRequire(import.meta.url);
 const mongoose = requires('mongoose');
@@ -27,6 +26,13 @@ export class SoacYearlyDD {
     this.model = soacYearlyDDModel;
   }
 
+  /**
+   * @description This function updates the yearly total degree days for a given metric and date.
+   * 
+   * @param name The name of the metric to find
+   * @param total_dd The total degree days to update for the metric
+   * @param d The date for which to update the yearly total degree days
+   */
   async update_yearly_total_dd(name: string, total_dd: number, d?: Date): Promise<void> {
     if (!d) d = new Date();
     const formattedDate = d.toISOString().split('T')[0];
@@ -44,6 +50,13 @@ export class SoacYearlyDD {
     }
   }
 
+  /**
+   * @description This function updates the start and end dates for a given metric.
+   * 
+   * @param name The name of the metric to update
+   * @param start_date The start date for the metric
+   * @param end_date The end date for the metric
+   */
   async update_dates(name: string, start_date: Date | null, end_date: Date | null): Promise<void> {
     interface DateDoc {
       name: string;
@@ -67,6 +80,11 @@ export class SoacYearlyDD {
     }
   }
 
+  /**
+   * @description This function sets the total degree days to zero for all metrics in a given
+   * 
+   * @param year The year for which to zero out the total degree days
+   */
   async zero_out_yearly_total_dd(year: number): Promise<void> {
     const date_str = new Date(year, 0, 1).toISOString().split('T')[0];
     try {
@@ -76,6 +94,12 @@ export class SoacYearlyDD {
     }
   }
 
+  /**
+   * @description Retrieves all metrics for a given year.
+   * 
+   * @param year The year for which to get the metrics
+   * @returns The metrics for the specified year.
+   */
   async get_metrics_by_year(year: number) {
     try {
       return await this.model.find({ active_year: year });
@@ -85,6 +109,11 @@ export class SoacYearlyDD {
     }
   }
 
+  /**
+   * @description Finds the yearly degree days for a given metric.
+   * 
+   * @param data The data to find the yearly degree days for
+   */
   async add_metric(data: {
     name: string;
     type: string;
@@ -126,6 +155,12 @@ export class SoacYearlyDD {
     }
   }
 
+  /**
+   * @description Deletes a yearly metric by name and year.
+   * 
+   * @param name The name of the metric to delete
+   * @param year The year for which to delete the metric
+   */
   async delete_yearly_metric(name: string, year: number): Promise<void> {
     if (!name || !year) {
       console.error('Name and year must be provided.');

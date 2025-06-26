@@ -83,7 +83,7 @@ The orchard manager class is used to track all of the backends data. It holds th
 
 ### University of Idaho Metrics Collected Documentation:
 1. Time spent writing new communication software: N/A
-2. Total new lines of code: 1,394
+2. Total new lines of code: 1,671 
 3. Number of code files needed: 9 typescript files, 3 docker files, 1 .env file
 4. User satisfaction rating: N/A
 

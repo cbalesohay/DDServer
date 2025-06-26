@@ -1,5 +1,4 @@
-// Total lines of code: 63
-
+// Total lines of code: 62
 const myRequire = createRequire(import.meta.url);
 myRequire('dotenv').config();
 const express = myRequire('express');
