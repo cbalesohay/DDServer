@@ -8,13 +8,15 @@ The back end of this project is written using Typescript. The thought behind mak
 - Node.js
 - Express.js
 - Mongoose
+- Dcoker
 
 ## Run / Build
-Process to build and run build for production:
+Process to build and run for production:
 
 ```
-npm run build
-npm run start
+docker compose build
+docker compose up -d
+docker compose ps # To confirm backend is running
 ```
 
 ## Database Integration
@@ -23,8 +25,8 @@ Steps to include your mongoDB connection into this backend:
 1. Create a `.env` file in the root directory of the project
 2. After adding your api key to the .env file, add you api key name to `<your-api>` in `process.env.<your-api>` located inside index.ts
 3. Modify `SoacDailyDD.ts` and `SoacYearlyDD.ts` schemas to match your specific dataset
-4. `npm run build` to build the project
-5. `npm run dev` to test api connection to mongoDB
+4. `docker compose build` to build the project
+5. `docker compose up -d` to test api connection to mongoDB
 6. Message in console should read "Connected to MongoDB"
 
 ## Metric Alter
