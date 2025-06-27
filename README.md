@@ -10,13 +10,21 @@ The back end of this project is written using Typescript. The thought behind mak
 - Mongoose
 - Dcoker
 
-## Run / Build
+## Build / Run
 Process to build and run for production:
 
 ```
 docker compose build
 docker compose up -d
-docker compose ps # To confirm backend is running
+docker compose ps #To confirm backend is running
+```
+
+## Stop 
+Process to stop production
+
+```
+docker compose down
+docker compose ps #To confirm backend stopped
 ```
 
 ## Database Integration
