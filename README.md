@@ -6,6 +6,19 @@
 - Mongoose
 - Docker
 
+## Database Integration / Start instructions
+Steps to include your mongoDB connection into this backend and start your project:
+
+1. Create a `.env` file in the root directory of the project
+2. Add your api key `API_KEY=<api_url>` to the .env as well as you port number `PORT=<####>`
+3. After adding your api key to the .env file, add you api key name to `<API_KEY>` in `process.env.<API_KEY>` located inside index.ts
+4. Modify `SoacDailyDD.ts`, `SoacYearlyDD.ts` and `SoacTotalDD.ts` schemas to match your specific dataset under the models folder
+5. `docker compose build` to build the project
+6. `docker compose up` to test api connection to mongoDB
+7. Message in console should read "Connected to MongoDB"
+8. `docker compose down` to stop project
+9. `docker compose ps` to conform server is down
+
 ## Build / Run
 Process to build and run for production:
 
@@ -22,16 +35,6 @@ Process to stop production
 docker compose down
 docker compose ps # To confirm backend stopped
 ```
-
-## Database Integration
-Steps to include your mongoDB connection into this backend:
-
-1. Create a `.env` file in the root directory of the project
-2. After adding your api key to the .env file, add you api key name to `<your-api>` in `process.env.<your-api>` located inside index.ts
-3. Modify `SoacDailyDD.ts` and `SoacYearlyDD.ts` schemas to match your specific dataset
-4. `docker compose build` to build the project
-5. `docker compose up -d` to test api connection to mongoDB
-6. Message in console should read "Connected to MongoDB"
 
 ## Metric Alter
 Locations to change tailored metrics:
