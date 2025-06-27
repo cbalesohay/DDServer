@@ -4,7 +4,7 @@
 - Node.js
 - Express.js
 - Mongoose
-- Dcoker
+- Docker
 
 ## Build / Run
 Process to build and run for production:
